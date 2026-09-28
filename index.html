@@ -5,9 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <title>BDBUZ</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: sans-serif;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #000000);
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
   <h1>BDBUZ</h1>
-  <script>Telegram.WebApp.ready();</script>
+  <p>Build Your Bot Uzbekistan</p>
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  </script>
 </body>
 </html>
