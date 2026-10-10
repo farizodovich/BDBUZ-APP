@@ -1,27 +1,140 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="uz">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <title>BDBUZ</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: sans-serif;
-      background: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #000000);
-      text-align: center;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BDBUZ Admin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#151515; --card:#20201E; --line:#33332F; --text:#F2F2EE; --muted:#8C8C85;
+    --accent:#4F9DFF; --ok:#3DDC84; --bad:#FF5C5C; --r:12px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px}
+  #app{display:flex;flex-direction:column;height:100%}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  header b{font-size:17px}
+  header span{color:var(--muted);font-size:13px}
+  main{flex:1;overflow-y:auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+  .card h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:500}
+  .card .v{font-size:22px;font-weight:600}
+  .row{display:flex;gap:12px}.row>.card{flex:1}
+  .center{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:10px}
+  .center .big{font-size:44px}
+  .muted{color:var(--muted)}
+  .err{color:var(--bad);font-size:13px;word-break:break-word}
+  nav{display:flex;border-top:1px solid var(--line);background:var(--bg);padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;background:none;border:0;color:var(--muted);padding:10px 0 9px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  nav button .ic{font-size:20px;line-height:1}
+  nav button.on{color:var(--accent)}
+  .hide{display:none!important}
+  .btn{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:var(--r);padding:12px 16px;font-size:15px}
+</style>
 </head>
 <body>
-  <h1>BDBUZ</h1>
-  <p>Build Your Bot Uzbekistan</p>
-  <script>
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-  </script>
+<div id="app">
+
+  <!-- Yuklanmoqda -->
+  <div id="s-load" class="center">
+    <div class="big">⏳</div>
+    <div class="muted">Yuklanmoqda…</div>
+  </div>
+
+  <!-- Admin emas / xato -->
+  <div id="s-deny" class="center hide">
+    <div class="big">🔒</div>
+    <b id="deny-title">Kirish yopiq</b>
+    <div class="muted" id="deny-text">Bu bo'lim faqat adminlar uchun.</div>
+    <div class="err" id="deny-err"></div>
+    <button class="btn" onclick="boot()">Qayta urinish</button>
+  </div>
+
+  <!-- Asosiy ilova -->
+  <div id="s-main" class="hide" style="display:flex;flex-direction:column;height:100%">
+    <header><b id="h-title">Bosh sahifa</b><span id="h-user"></span></header>
+    <main id="view"></main>
+    <nav id="nav">
+      <button data-p="home" class="on"><span class="ic">🏠</span>Bosh</button>
+      <button data-p="stats"><span class="ic">📊</span>Statistika</button>
+      <button data-p="users"><span class="ic">👥</span>Odamlar</button>
+      <button data-p="pay"><span class="ic">💳</span>To'lovlar</button>
+      <button data-p="bots"><span class="ic">🤖</span>Botlar</button>
+    </nav>
+  </div>
+
+</div>
+
+<script>
+const API = "https://api.bdbuz.store";
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try{ tg.setHeaderColor("#151515"); tg.setBackgroundColor("#151515"); }catch(e){} }
+
+const $ = id => document.getElementById(id);
+function show(id){ ["s-load","s-deny","s-main"].forEach(x=>$(x).classList.toggle("hide", x!==id)); }
+
+async function api(path){
+  const initData = tg ? tg.initData : "";
+  const r = await fetch(API + path, { headers: { "Authorization": "tma " + initData } });
+  let data = null; try{ data = await r.json(); }catch(e){}
+  return { status: r.status, data };
+}
+
+let ME = null;
+
+async function boot(){
+  show("s-load");
+  try{
+    if(!tg || !tg.initData){
+      return deny("Telegram ichida oching", "Bu sahifa faqat botdagi Mini App tugmasi orqali ishlaydi.");
+    }
+    const {status, data} = await api("/api/me");
+    if(status === 200){
+      ME = data;
+      const u = data.user || data;
+      $("h-user").textContent = u.first_name || u.name || "";
+      show("s-main");
+      go("home");
+    } else if(status === 403){
+      deny("Siz admin emassiz", "Bu bo'lim faqat adminlar uchun.");
+    } else {
+      deny("Xatolik", "Server javobi: " + status);
+    }
+  }catch(e){
+    deny("Server bilan aloqa yo'q", "Birozdan keyin qayta urinib ko'ring.", String(e));
+  }
+}
+
+function deny(t, txt, err){
+  $("deny-title").textContent = t;
+  $("deny-text").textContent = txt;
+  $("deny-err").textContent = err || "";
+  show("s-deny");
+}
+
+const TITLES = { home:"Bosh sahifa", stats:"Statistika", users:"Foydalanuvchilar", pay:"To'lovlar", bots:"Owner botlari" };
+
+function go(p){
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on", b.dataset.p===p));
+  $("h-title").textContent = TITLES[p];
+  const v = $("view");
+  if(p === "home"){
+    const u = (ME && (ME.user || ME)) || {};
+    v.innerHTML =
+      '<div class="card"><h3>Xush kelibsiz</h3><div class="v">' + esc(u.first_name || u.name || "Admin") + '</div></div>' +
+      '<div class="card"><h3>Rol</h3><div class="v">' + esc(u.role || "admin") + '</div></div>' +
+      '<div class="card"><h3>Server</h3><div class="v" style="color:var(--ok)">● Ishlayapti</div></div>';
+  } else {
+    v.innerHTML = '<div class="card"><h3>' + TITLES[p] + '</h3><div class="muted">Tez orada qo\'shiladi.</div></div>';
+  }
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+document.querySelectorAll("#nav button").forEach(b=> b.onclick = ()=> go(b.dataset.p));
+boot();
+</script>
 </body>
 </html>
