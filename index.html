@@ -34,8 +34,9 @@
   nav button.on{color:var(--accent)}
   .hide{display:none!important}
   .btn{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:var(--r);padding:12px 16px;font-size:15px;width:100%}
-  input.search{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:var(--r);padding:12px 14px;font-size:15px;margin-bottom:12px;outline:none}
-  input.search:focus{border-color:var(--accent)}
+  input.search,textarea.search{width:100%;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:var(--r);padding:12px 14px;font-size:15px;margin-bottom:12px;outline:none}
+  textarea.search{resize:vertical;font-family:inherit}
+  input.search:focus,textarea.search:focus{border-color:var(--accent)}
   .item{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
   .item .l{min-width:0}
   .item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -91,9 +92,15 @@ function show(id){ ["s-load","s-deny","s-main"].forEach(x=>$(x).classList.toggle
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function money(n){ return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 
-async function api(path){
+const BOT = new URLSearchParams(location.search).get("bot");   // ?bot=1 -> ega rejimi
+
+async function api(path, body){
   const initData = tg ? tg.initData : "";
-  const r = await fetch(API + path, { headers: { "Authorization": "tma " + initData } });
+  const h = { "Authorization": "tma " + initData };
+  if(BOT) h["X-Bot"] = BOT;
+  const o = { headers: h };
+  if(body){ o.method = "POST"; h["Content-Type"] = "application/json"; o.body = JSON.stringify(body); }
+  const r = await fetch(API + path, o);
   let data = null; try{ data = await r.json(); }catch(e){}
   return { status: r.status, data };
 }
@@ -105,6 +112,22 @@ async function boot(){
   try{
     if(!tg || !tg.initData){
       return deny("Telegram ichida oching", "Bu sahifa faqat botdagi Mini App tugmasi orqali ishlaydi.");
+    }
+    if(BOT){
+      const {status, data} = await api("/api/owner/me");
+      if(status === 200){
+        ME = { name: data.username ? "@" + data.username : "Bot" };
+        $("h-user").textContent = ME.name;
+        $("nav").innerHTML =
+          '<button data-p="home" class="on"><span class="ic">🏠</span>Bosh</button>' +
+          '<button data-p="users"><span class="ic">👥</span>Odamlar</button>' +
+          '<button data-p="settings"><span class="ic">⚙️</span>Sozlamalar</button>';
+        document.querySelectorAll("#nav button").forEach(b=> b.onclick = ()=> go(b.dataset.p));
+        show("s-main");
+        return go("home");
+      }
+      if(status === 403) return deny("Siz bu botning egasi emassiz", "Panel faqat bot egasi uchun.");
+      return deny("Xatolik", "Server javobi: " + status);
     }
     const {status, data} = await api("/api/me");
     if(status === 200){
@@ -129,7 +152,7 @@ function deny(t, txt, err){
   show("s-deny");
 }
 
-const TITLES = { home:"Bosh sahifa", stats:"Statistika", users:"Foydalanuvchilar", pay:"To'lovlar", bots:"Owner botlari" };
+const TITLES = { home:"Bosh sahifa", stats:"Statistika", users:"Foydalanuvchilar", pay:"To'lovlar", bots:"Owner botlari", settings:"Sozlamalar" };
 
 function go(p){
   token++;
@@ -138,6 +161,10 @@ function go(p){
   $("h-title").textContent = TITLES[p];
   const v = $("view");
   v.scrollTop = 0;
+  if(BOT){
+    v.innerHTML = '<div class="muted" style="text-align:center;padding:30px">Yuklanmoqda…</div>';
+    return ({home:ownerHome, users:ownerUsers, settings:ownerSettings})[p](v, token);
+  }
   if(p === "home") return pageHome(v);
   v.innerHTML = '<div class="muted" style="text-align:center;padding:30px">Yuklanmoqda…</div>';
   ({stats:pageStats, users:pageUsers, pay:pagePay, bots:pageBots})[p](v, token);
@@ -155,6 +182,58 @@ async function load(v, my, path, render){
     v.innerHTML = '<div class="card"><div class="err">Yuklab bo\'lmadi (' + esc(e.message) + ')</div></div>' +
                   '<button class="btn" onclick="go(document.querySelector(\'#nav .on\').dataset.p)">Qayta urinish</button>';
   }
+}
+
+
+// ================= EGA PANELI (?bot=N) =================
+function fmtDate(ts){ if(!ts) return "—"; const d = new Date(ts * 1000); return d.toLocaleDateString("uz-UZ"); }
+
+function ownerHome(v, my){
+  load(v, my, "/api/owner/overview", d => {
+    v.innerHTML =
+      '<div class="card"><h3>Botingiz</h3><div class="v">@' + esc(d.username) + '</div>' +
+        '<div class="sub">Ijara muddati: ' + esc(fmtDate(d.expires)) + ' gacha</div></div>' +
+      '<div class="row">' +
+        '<div class="card"><h3>Foydalanuvchilar</h3><div class="v">' + money(d.users) + '</div></div>' +
+        '<div class="card"><h3>Paketlar</h3><div class="v">' + money(d.packs) + '</div></div>' +
+      '</div>' +
+      '<div class="card"><h3>Tushum</h3><div class="v">' + money(d.uzs) + '</div><div class="sub">UZS</div></div>';
+  });
+}
+
+function ownerUsers(v, my){
+  load(v, my, "/api/owner/overview", d => {
+    if(!d.top.length){ v.innerHTML = '<div class="muted" style="text-align:center;padding:30px">Hozircha faoliyat yo\'q</div>'; return; }
+    v.innerHTML = '<div class="muted" style="font-size:12px;margin-bottom:10px">Jami foydalanuvchilar: ' + d.users + '</div>' +
+      d.top.map(u =>
+        '<div class="card item"><div class="l"><div class="t">' + (u.username ? '@' + esc(u.username) : 'ID ' + esc(u.id)) + '</div>' +
+          '<div class="s">ID ' + esc(u.id) + ' · paketlar: ' + money(u.packs) + '</div></div>' +
+        '<div class="r"><div class="amt">' + money(u.uzs) + '</div><div class="s">UZS</div></div></div>'
+      ).join("");
+  });
+}
+
+function ownerSettings(v, my){
+  load(v, my, "/api/owner/overview", d => {
+    const p = d.prices || {}, s = d.settings || {};
+    v.innerHTML =
+      '<div class="card"><h3>Bot nomi (name)</h3><input class="search" id="f-name" value="' + esc(p.name) + '">' +
+        '<h3>Logo (logo)</h3><input class="search" id="f-logo" value="' + esc(p.logo) + '">' +
+        '<button class="btn" id="b-prices">Saqlash</button></div>' +
+      '<div class="card"><h3>Aloqa (support)</h3><input class="search" id="f-sup" value="' + esc(s.support_contact) + '">' +
+        '<h3>Hisob to\'ldirish matni</h3><textarea class="search" id="f-top" rows="4">' + esc(s.topup_text) + '</textarea>' +
+        '<button class="btn" id="b-set">Saqlash</button></div>';
+    const save = async (btn, path, body) => {
+      btn.textContent = "Saqlanmoqda…";
+      try{
+        const r = await api(path, body);
+        btn.textContent = (r.status === 200 && r.data && r.data.ok) ? "✅ Saqlandi" : "❌ Xatolik (" + r.status + ")";
+      }catch(e){ btn.textContent = "❌ Aloqa yo'q"; }
+      setTimeout(()=> btn.textContent = "Saqlash", 2000);
+    };
+    $("b-prices").onclick = e => save(e.target, "/api/owner/prices", { name: $("f-name").value, logo: $("f-logo").value });
+    $("b-set").onclick = e => save(e.target, "/api/owner/settings", { support_contact: $("f-sup").value, topup_text: $("f-top").value });
+  });
 }
 
 // ---------- Bosh ----------
