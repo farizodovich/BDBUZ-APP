@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BDBUZ Boshqaruv</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#4B2E21; --deep:#3A2218; --card:#58382A; --cream:#F2E6B3;
+    --dim:rgba(242,230,179,.62); --line:rgba(242,230,179,.18); --soft:rgba(242,230,179,.08);
+    --ok:#A8D08D; --warn:#F0C05A; --bad:#EE8B74; --r:16px;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px}
+  button{font-family:inherit;color:inherit}
+  #app{height:100%;display:flex;flex-direction:column}
+  .hide{display:none!important}
+
+  /* yuqori panel */
+  .top{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--deep);border-bottom:1px solid var(--line)}
+  .menu{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--soft);font-size:20px;line-height:1}
+  .brand{flex:1;min-width:0}
+  .brand b{font-family:var(--serif);font-size:19px;letter-spacing:.5px;display:block}
+  .brand small{color:var(--dim);font-size:12px}
+  #who{color:var(--dim);font-size:12px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* yon menyu */
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:20}
+  #scrim.on{opacity:1;pointer-events:auto}
+  #drawer{position:fixed;top:0;bottom:0;left:0;width:78%;max-width:300px;background:var(--deep);border-right:1px solid var(--line);
+    transform:translateX(-100%);transition:.25s;z-index:21;padding:22px 14px;display:flex;flex-direction:column;gap:6px}
+  #drawer.on{transform:none}
+  #drawer h2{font-family:var(--serif);font-size:24px;margin:0 8px 2px}
+  #drawer p{margin:0 8px 16px;color:var(--dim);font-size:12px}
+  .mi{display:flex;align-items:center;gap:12px;background:none;border:0;border-radius:12px;padding:13px 12px;font-size:15px;text-align:left;width:100%}
+  .mi .ic{width:26px;text-align:center;font-size:19px}
+  .mi.on{background:var(--cream);color:var(--bg);font-weight:600}
+
+  main{flex:1;overflow-y:auto;padding:16px 16px 28px}
+  .muted{color:var(--dim)}
+  .center{text-align:center;padding:36px 10px;color:var(--dim)}
+  .err{color:var(--bad);font-size:13px;word-break:break-word}
+
+  /* bloklar */
+  .hero{background:var(--cream);color:var(--bg);border-radius:22px;padding:20px;margin-bottom:14px}
+  .hero small{opacity:.7;font-size:12px;letter-spacing:.4px;text-transform:uppercase}
+  .hero .big{font-family:var(--serif);font-size:38px;font-weight:700;margin:4px 0 2px}
+  .hero .sub{font-size:13px;opacity:.75}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+  .tile small{color:var(--dim);font-size:12px}
+  .tile .n{font-family:var(--serif);font-size:25px;font-weight:700;margin-top:4px}
+  .tile .s{font-size:12px;color:var(--dim);margin-top:3px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+  .box h3{margin:0 0 10px;font-family:var(--serif);font-size:16px}
+  .sec{font-family:var(--serif);font-size:17px;margin:18px 2px 10px}
+
+  .row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row.tap{cursor:pointer}
+  .row .l{min-width:0}
+  .row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .s{font-size:12px;color:var(--dim);margin-top:3px}
+  .row .r{text-align:right;white-space:nowrap}
+  .row .a{font-family:var(--serif);font-weight:700}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+
+  .search{width:100%;background:var(--deep);border:1px solid var(--line);color:var(--cream);border-radius:14px;padding:13px 14px;font-size:15px;outline:none;margin-bottom:12px}
+  .search::placeholder{color:var(--dim)}
+  .search:focus{border-color:var(--cream)}
+  .chips{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+  .chip{flex:none;background:none;border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;color:var(--dim)}
+  .chip.on{background:var(--cream);border-color:var(--cream);color:var(--bg);font-weight:600}
+  .btn{width:100%;background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:13px;font-size:15px}
+  .day{font-size:12px;color:var(--dim);margin:14px 2px 4px;letter-spacing:.4px}
+
+  .bar{height:9px;border-radius:6px;background:var(--soft);overflow:hidden;margin:6px 0 12px}
+  .bar i{display:block;height:100%;background:var(--cream);border-radius:6px}
+  .spark{display:flex;align-items:flex-end;gap:4px;height:70px;margin-top:6px}
+  .spark i{flex:1;background:var(--cream);opacity:.85;border-radius:4px 4px 0 0;min-height:3px}
+  .chartbox{position:relative;height:210px}
+  .pills{display:flex;gap:8px}
+  .pill{flex:1;background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+  .pill b{display:block;font-family:var(--serif);font-size:18px}
+  .pill span{font-size:11px;color:var(--dim)}
+
+  /* pastki oyna */
+  #sheet{position:fixed;left:0;right:0;bottom:0;max-height:82%;overflow-y:auto;background:var(--deep);border-top:1px solid var(--line);
+    border-radius:22px 22px 0 0;padding:18px 18px 28px;transform:translateY(105%);transition:.25s;z-index:31}
+  #sheet.on{transform:none}
+  #sscrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:30}
+  #sscrim.on{opacity:1;pointer-events:auto}
+  #sheet h2{font-family:var(--serif);margin:0 0 4px;font-size:21px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv span:first-child{color:var(--dim)}
+  .kv:last-of-type{border-bottom:0}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="s-load" class="center" style="margin-top:30vh"><div style="font-size:40px">⏳</div>Yuklanmoqda…</div>
+
+  <div id="s-deny" class="center hide" style="margin-top:22vh">
+    <div style="font-size:44px">🔒</div>
+    <h3 id="d-t" style="font-family:var(--serif);color:var(--cream)">Kirish yopiq</h3>
+    <div id="d-x"></div><div class="err" id="d-e"></div><br>
+    <button class="btn" style="width:auto;padding:12px 22px" onclick="boot()">Qayta urinish</button>
+  </div>
+
+  <div id="s-main" class="hide" style="height:100%;display:flex;flex-direction:column">
+    <div class="top">
+      <button class="menu" id="menuBtn">☰</button>
+      <div class="brand"><b>BDBUZ</b><small id="pname">Bosh sahifa</small></div>
+      <span id="who"></span>
+    </div>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <h2>BDBUZ</h2><p>Boshqaruv paneli</p>
+  <button class="mi on" data-p="home"><span class="ic">🏠</span>Bosh sahifa</button>
+  <button class="mi" data-p="stats"><span class="ic">📊</span>Statistika</button>
+  <button class="mi" data-p="users"><span class="ic">👥</span>Foydalanuvchilar</button>
+  <button class="mi" data-p="pay"><span class="ic">💳</span>To'lovlar</button>
+  <button class="mi" data-p="bots"><span class="ic">🤖</span>Owner botlari</button>
+</aside>
+
+<div id="sscrim"></div>
+<div id="sheet"></div>
+
+<script>
+const API = "https://api.bdbuz.store";
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try{ tg.setHeaderColor("#4B2E21"); tg.setBackgroundColor("#4B2E21"); }catch(e){} }
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = n => String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+function show(id){ ["s-load","s-deny","s-main"].forEach(x=>$(x).classList.toggle("hide", x!==id)); }
+
+async function api(path, body){
+  const h = { "Authorization": "tma " + (tg ? tg.initData : "") };
+  const o = { headers: h };
+  if(body){ o.method = "POST"; h["Content-Type"] = "application/json"; o.body = JSON.stringify(body); }
+  const r = await fetch(API + path, o);
+  let data = null; try{ data = await r.json(); }catch(e){}
+  return { status: r.status, data };
+}
+async function getOk(path){
+  const {status, data} = await api(path);
+  if(status !== 200 || !data || !data.ok) throw new Error("javob: " + status);
+  return data;
+}
+
+let ME = null, chart = null, token = 0, PAGE = "home";
+
+async function boot(){
+  show("s-load");
+  try{
+    if(!tg || !tg.initData) return deny("Telegram ichida oching", "Bu sahifa faqat bot ichidagi tugma orqali ishlaydi.");
+    const {status, data} = await api("/api/me");
+    if(status === 200){ ME = data; $("who").textContent = data.name || ""; show("s-main"); go("home"); }
+    else if(status === 403) deny("Siz admin emassiz", "Bu bo'lim faqat adminlar uchun.");
+    else deny("Xatolik", "Server javobi: " + status);
+  }catch(e){ deny("Server bilan aloqa yo'q", "Birozdan keyin qayta urinib ko'ring.", String(e)); }
+}
+function deny(t, x, e){ $("d-t").textContent = t; $("d-x").textContent = x; $("d-e").textContent = e || ""; show("s-deny"); }
+
+/* ---- yon menyu ---- */
+function drawer(on){ $("drawer").classList.toggle("on", on); $("scrim").classList.toggle("on", on); }
+$("menuBtn").onclick = () => drawer(true);
+$("scrim").onclick = () => drawer(false);
+document.querySelectorAll(".mi").forEach(b => b.onclick = () => { drawer(false); go(b.dataset.p); });
+
+/* ---- pastki oyna ---- */
+function sheet(html){ $("sheet").innerHTML = html; $("sheet").classList.add("on"); $("sscrim").classList.add("on"); }
+function closeSheet(){ $("sheet").classList.remove("on"); $("sscrim").classList.remove("on"); }
+$("sscrim").onclick = closeSheet;
+
+const TITLES = { home:"Bosh sahifa", stats:"Statistika", users:"Foydalanuvchilar", pay:"To'lovlar", bots:"Owner botlari" };
+function go(p){
+  token++; PAGE = p; closeSheet();
+  if(chart){ chart.destroy(); chart = null; }
+  document.querySelectorAll(".mi").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+  $("pname").textContent = TITLES[p];
+  const v = $("view"); v.scrollTop = 0;
+  v.innerHTML = '<div class="center">Yuklanmoqda…</div>';
+  ({home:pageHome, stats:pageStats, users:pageUsers, pay:pagePay, bots:pageBots})[p](v, token);
+}
+function fail(v, e){
+  v.innerHTML = '<div class="box"><div class="err">Yuklab bo\'lmadi (' + esc(e.message) + ')</div></div><button class="btn" onclick="go(PAGE)">Qayta urinish</button>';
+}
+
+const PLAN = { starter:"🥉 Starter", pro:"🥈 Pro", vip:"🥇 VIP" };
+const ST = { active:["🟢","faol","ok"], grace:["🟠","muhlat","warn"], stopped:["🔴","to'xtatilgan","bad"] };
+function parseDT(s){ const m = /(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)/.exec(s||""); return m ? new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]) : null; }
+function daysLeft(s){ const d = parseDT(s); return d ? Math.ceil((d - Date.now()) / 86400000) : null; }
+
+/* ================= BOSH ================= */
+async function pageHome(v, my){
+  try{
+    const [s, b] = await Promise.all([getOk("/api/stats"), getOk("/api/bots")]);
+    if(my !== token) return;
+    const max = Math.max(1, ...s.series.slice(-14).map(x=>x.v));
+    const spark = s.series.slice(-14).map(x => '<i style="background:#4B2E21;height:' + Math.max(4, Math.round(x.v / max * 100)) + '%"></i>').join("");
+    const watch = b.items.map(x => ({x, left: daysLeft(x.expires)}))
+      .filter(o => o.x.status !== "active" || (o.left !== null && o.left <= 3) || !o.x.running)
+      .slice(0, 8);
+    v.innerHTML =
+      '<div class="hero"><small>Bugungi tushum</small><div class="big">' + money(s.income_today) + ' <span style="font-size:16px">UZS</span></div>' +
+        '<div class="sub">7 kunda ' + money(s.income_7) + ' · 30 kunda ' + money(s.income_30) + '</div>' +
+        '<div class="spark">' + spark + '</div></div>' +
+      '<div class="grid">' +
+        '<div class="tile"><small>Foydalanuvchilar</small><div class="n">' + money(s.users_total) + '</div><div class="s">bugun +' + s.new_today + ' · 7 kun +' + s.new_7 + '</div></div>' +
+        '<div class="tile"><small>Jami balans</small><div class="n">' + money(s.balance_total) + '</div><div class="s">UZS</div></div>' +
+        '<div class="tile"><small>Owner botlari</small><div class="n">' + s.bots.total + '</div><div class="s">faol ' + s.bots.active + ' · muhlat ' + s.bots.grace + ' · to\'xtagan ' + s.bots.stopped + '</div></div>' +
+        '<div class="tile"><small>Jami tushum</small><div class="n">' + money(s.income_all) + '</div><div class="s">UZS</div></div>' +
+      '</div>' +
+      '<div class="sec">Diqqat kerak</div><div class="box">' +
+        (watch.length ? watch.map(o => {
+          const st = ST[o.x.status] || ["⚪", o.x.status || "?", ""];
+          const note = !o.x.running ? "o'chiq" : (o.left !== null && o.left <= 3 ? (o.left <= 0 ? "muddat tugadi" : o.left + " kun qoldi") : st[1]);
+          return '<div class="row tap" onclick="botSheet(\'' + esc(o.x.id) + '\')"><div class="l"><div class="t">' + st[0] + ' ' + (o.x.username ? '@' + esc(o.x.username) : 'bot ' + esc(o.x.id)) + '</div>' +
+            '<div class="s">' + esc(o.x.owner_name || o.x.owner) + ' · ' + esc(o.x.expires) + '</div></div>' +
+            '<div class="r ' + st[2] + '">' + esc(note) + '</div></div>';
+        }).join("") : '<div class="muted" style="padding:6px 0">Hammasi joyida ✅</div>') +
+      '</div>';
+    BOTS = b.items;
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+/* ================= STATISTIKA ================= */
+async function pageStats(v, my){
+  try{
+    const d = await getOk("/api/stats");
+    if(my !== token) return;
+    const tb = Math.max(1, d.bots.total), tp = Math.max(1, d.plans.starter + d.plans.pro + d.plans.vip);
+    const pl = (k, n) => '<div style="display:flex;justify-content:space-between"><span>' + PLAN[k] + '</span><b>' + n + '</b></div><div class="bar"><i style="width:' + Math.round(n / tp * 100) + '%"></i></div>';
+    v.innerHTML =
+      '<div class="box"><h3>Tushum (UZS)</h3><div class="pills">' +
+        '<div class="pill"><b>' + money(d.income_today) + '</b><span>bugun</span></div>' +
+        '<div class="pill"><b>' + money(d.income_7) + '</b><span>7 kun</span></div>' +
+        '<div class="pill"><b>' + money(d.income_30) + '</b><span>30 kun</span></div></div></div>' +
+      '<div class="box"><h3>Oxirgi 30 kun</h3><div class="chartbox"><canvas id="ch"></canvas></div></div>' +
+      '<div class="box"><h3>Yangi foydalanuvchilar</h3><div class="pills">' +
+        '<div class="pill"><b>' + d.new_today + '</b><span>bugun</span></div>' +
+        '<div class="pill"><b>' + d.new_7 + '</b><span>7 kun</span></div>' +
+        '<div class="pill"><b>' + d.new_30 + '</b><span>30 kun</span></div></div></div>' +
+      '<div class="box"><h3>Botlar holati (' + d.bots.total + ')</h3>' +
+        '<div style="display:flex;justify-content:space-between"><span class="ok">● faol</span><b>' + d.bots.active + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.active / tb * 100) + '%"></i></div>' +
+        '<div style="display:flex;justify-content:space-between"><span class="warn">● muhlat</span><b>' + d.bots.grace + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.grace / tb * 100) + '%"></i></div>' +
+        '<div style="display:flex;justify-content:space-between"><span class="bad">● to\'xtagan</span><b>' + d.bots.stopped + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.stopped / tb * 100) + '%"></i></div></div>' +
+      '<div class="box"><h3>Tariflar</h3>' + pl("starter", d.plans.starter) + pl("pro", d.plans.pro) + pl("vip", d.plans.vip) + '</div>';
+    if(window.Chart){
+      Chart.defaults.color = "rgba(242,230,179,.62)";
+      chart = new Chart($("ch"), {
+        type: "line",
+        data: { labels: d.series.map(x=>x.d),
+                datasets: [{ data: d.series.map(x=>x.v), borderColor: "#F2E6B3", backgroundColor: "rgba(242,230,179,.15)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => money(c.parsed.y) + " UZS" } } },
+          scales: { x: { ticks: { maxTicksLimit: 6, maxRotation: 0 }, grid: { display: false }, border: { color: "rgba(242,230,179,.18)" } },
+                    y: { beginAtZero: true, ticks: { maxTicksLimit: 4, callback: n => money(n) }, grid: { color: "rgba(242,230,179,.1)" }, border: { display: false } } } }
+      });
+    }
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+/* ================= FOYDALANUVCHILAR ================= */
+let uQ = "", uPage = 1, uTimer = null, USERS = {};
+function pageUsers(v, my){
+  v.innerHTML = '<input class="search" id="uq" placeholder="Ism, @username yoki ID…" value="' + esc(uQ) + '"><div class="box" id="ul" style="padding:4px 14px"></div><div id="um"></div>';
+  $("uq").oninput = e => { uQ = e.target.value; clearTimeout(uTimer); uTimer = setTimeout(() => { uPage = 1; $("ul").innerHTML = ""; loadUsers(token); }, 350); };
+  uPage = 1; loadUsers(my);
+}
+async function loadUsers(my){
+  try{
+    const d = await getOk("/api/users?page=" + uPage + "&q=" + encodeURIComponent(uQ));
+    if(my !== token) return;
+    const ul = $("ul"); if(!ul) return;
+    if(uPage === 1 && !d.items.length) ul.innerHTML = '<div class="center">Hech kim topilmadi</div>';
+    d.items.forEach(u => USERS[u.id] = u);
+    ul.insertAdjacentHTML("beforeend", d.items.map(u =>
+      '<div class="row tap" onclick="userSheet(\'' + esc(u.id) + '\')"><div class="l"><div class="t">' + esc(u.name || "Ismsiz") +
+        (u.username ? ' <span class="muted" style="font-weight:400">@' + esc(u.username) + '</span>' : '') + '</div>' +
+        '<div class="s">ID ' + esc(u.id) + ' · ' + esc(u.registered) + ' · botlar ' + u.bots + '</div></div>' +
+      '<div class="r"><div class="a">' + money(u.balance) + '</div><div class="s">UZS</div></div></div>').join(""));
+    $("um").innerHTML = d.page < d.pages
+      ? '<button class="btn" id="more">Yana yuklash (jami ' + d.total + ')</button>'
+      : '<div class="muted" style="text-align:center;font-size:12px">Jami: ' + d.total + '</div>';
+    const m = $("more"); if(m) m.onclick = () => { uPage++; m.textContent = "Yuklanmoqda…"; loadUsers(my); };
+  }catch(e){
+    if(my !== token) return;
+    $("um").innerHTML = '<div class="err" style="margin:8px 0">Yuklab bo\'lmadi (' + esc(e.message) + ')</div><button class="btn" onclick="loadUsers(token)">Qayta urinish</button>';
+  }
+}
+function userSheet(id){
+  const u = USERS[id]; if(!u) return;
+  sheet('<h2>' + esc(u.name || "Ismsiz") + '</h2><div class="muted" style="margin-bottom:10px">' + (u.username ? '@' + esc(u.username) : 'username yo\'q') + '</div>' +
+    '<div class="kv"><span>ID</span><b>' + esc(u.id) + '</b></div>' +
+    '<div class="kv"><span>Balans</span><b>' + money(u.balance) + ' UZS</b></div>' +
+    '<div class="kv"><span>Botlari</span><b>' + u.bots + '</b></div>' +
+    '<div class="kv"><span>Ro\'yxatdan o\'tgan</span><b>' + esc(u.registered) + '</b></div>' +
+    '<button class="btn" style="margin-top:14px" onclick="closeSheet()">Yopish</button>');
+}
+
+/* ================= TO'LOVLAR ================= */
+let PAYS = [], pFilter = "all";
+async function pagePay(v, my){
+  try{
+    const d = await getOk("/api/payments");
+    if(my !== token) return;
+    PAYS = d.items; drawPay(v);
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function drawPay(v){
+  const kinds = ["all"].concat([...new Set(PAYS.map(p => p.purpose))]);
+  const list = PAYS.filter(p => pFilter === "all" || p.purpose === pFilter);
+  const sum = list.reduce((a, p) => a + p.amount, 0);
+  let last = "", rows = "";
+  list.forEach(p => {
+    const day = p.time.slice(0, 10);
+    if(day !== last){ rows += '<div class="day">' + esc(day) + '</div>'; last = day; }
+    rows += '<div class="row"><div class="l"><div class="t">' + esc(p.name || ("ID " + p.user_id)) + (p.username ? ' <span class="muted" style="font-weight:400">@' + esc(p.username) + '</span>' : '') + '</div>' +
+      '<div class="s">' + esc(p.time.slice(11)) + ' · ' + esc(p.purpose) + '</div></div><div class="r"><div class="a ok">+' + money(p.amount) + '</div><div class="s">UZS</div></div></div>';
+  });
+  v.innerHTML =
+    '<div class="hero" style="padding:16px"><small>Ko\'rsatilgan to\'lovlar</small><div class="big" style="font-size:30px">' + money(sum) + ' <span style="font-size:14px">UZS</span></div><div class="sub">' + list.length + ' ta to\'lov</div></div>' +
+    '<div class="chips">' + kinds.map(k => '<button class="chip' + (k === pFilter ? ' on' : '') + '" data-k="' + esc(k) + '">' + (k === "all" ? "Hammasi" : esc(k)) + '</button>').join("") + '</div>' +
+    (list.length ? '<div class="box" style="padding:4px 14px">' + rows + '</div>' : '<div class="center">To\'lov yo\'q</div>');
+  v.querySelectorAll(".chip").forEach(c => c.onclick = () => { pFilter = c.dataset.k; drawPay(v); });
+}
+
+/* ================= OWNER BOTLARI ================= */
+let BOTS = [], bStatus = "all", bPlan = "all", bQ = "";
+async function pageBots(v, my){
+  try{
+    const d = await getOk("/api/bots");
+    if(my !== token) return;
+    BOTS = d.items; drawBots(v);
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function drawBots(v){
+  const q = bQ.trim().toLowerCase().replace(/^@/, "");
+  const list = BOTS.filter(b =>
+    (bStatus === "all" || b.status === bStatus) && (bPlan === "all" || b.plan === bPlan) &&
+    (!q || (b.username || "").toLowerCase().includes(q) || String(b.owner).includes(q) || (b.owner_name || "").toLowerCase().includes(q)));
+  const chip = (grp, k, t, cur) => '<button class="chip' + (k === cur ? ' on' : '') + '" data-g="' + grp + '" data-k="' + k + '">' + t + '</button>';
+  v.innerHTML =
+    '<input class="search" id="bq" placeholder="Bot, owner yoki ID…" value="' + esc(bQ) + '">' +
+    '<div class="chips">' + chip("s","all","Hammasi",bStatus) + chip("s","active","🟢 Faol",bStatus) + chip("s","grace","🟠 Muhlat",bStatus) + chip("s","stopped","🔴 To'xtagan",bStatus) + '</div>' +
+    '<div class="chips">' + chip("p","all","Barcha tarif",bPlan) + chip("p","starter","Starter",bPlan) + chip("p","pro","Pro",bPlan) + chip("p","vip","VIP",bPlan) + '</div>' +
+    '<div class="muted" style="font-size:12px;margin:0 2px 8px">' + list.length + ' ta bot · muddati yaqinlari tepada</div>' +
+    (list.length ? '<div class="box" style="padding:4px 14px">' + list.map(b => {
+      const st = ST[b.status] || ["⚪", b.status || "?", ""], left = daysLeft(b.expires);
+      return '<div class="row tap" onclick="botSheet(\'' + esc(b.id) + '\')"><div class="l"><div class="t">' + st[0] + ' ' + (b.username ? '@' + esc(b.username) : 'bot ' + esc(b.id)) + '</div>' +
+        '<div class="s">' + esc(b.owner_name || b.owner) + ' · ' + (left === null ? esc(b.expires) : left + ' kun qoldi') + (b.running ? '' : ' · o\'chiq') + '</div></div>' +
+        '<div class="r"><div class="a">' + esc(PLAN[b.plan] || b.plan) + '</div><div class="s">' + money(b.price) + '/oy</div></div></div>';
+    }).join("") + '</div>' : '<div class="center">Bot topilmadi</div>');
+  const inp = $("bq");
+  inp.oninput = e => { bQ = e.target.value; const pos = inp.selectionStart; drawBots(v); const n = $("bq"); n.focus(); n.setSelectionRange(pos, pos); };
+  v.querySelectorAll(".chip").forEach(c => c.onclick = () => { if(c.dataset.g === "s") bStatus = c.dataset.k; else bPlan = c.dataset.k; drawBots(v); });
+}
+function botSheet(id){
+  const b = BOTS.find(x => String(x.id) === String(id)); if(!b) return;
+  const st = ST[b.status] || ["⚪", b.status || "?", ""], left = daysLeft(b.expires);
+  sheet('<h2>' + (b.username ? '@' + esc(b.username) : 'bot ' + esc(b.id)) + '</h2><div class="' + st[2] + '" style="margin-bottom:10px">' + st[0] + ' ' + st[1] + (b.running ? ' · ishlayapti' : ' · o\'chiq') + '</div>' +
+    '<div class="kv"><span>Bot raqami</span><b>' + esc(b.id) + '</b></div>' +
+    '<div class="kv"><span>Owner</span><b>' + esc(b.owner_name || "—") + '</b></div>' +
+    '<div class="kv"><span>Owner ID</span><b>' + esc(b.owner) + '</b></div>' +
+    '<div class="kv"><span>Tarif</span><b>' + esc(PLAN[b.plan] || b.plan) + '</b></div>' +
+    '<div class="kv"><span>Narx</span><b>' + money(b.price) + ' UZS/oy</b></div>' +
+    '<div class="kv"><span>Muddat</span><b>' + esc(b.expires) + (left === null ? '' : ' (' + (left <= 0 ? 'tugagan' : left + ' kun') + ')') + '</b></div>' +
+    '<button class="btn" style="margin-top:14px" onclick="closeSheet()">Yopish</button>');
+}
+
+boot();
+</script>
+</body>
+</html>
