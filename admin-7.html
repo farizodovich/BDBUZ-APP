@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BDBUZ Boshqaruv</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#4B2E21; --deep:#3A2218; --card:#58382A; --cream:#F2E6B3;
+    --dim:rgba(242,230,179,.62); --line:rgba(242,230,179,.18); --soft:rgba(242,230,179,.08);
+    --ok:#A8D08D; --warn:#F0C05A; --bad:#EE8B74; --r:16px;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px}
+  button{font-family:inherit;color:inherit}
+  #app{height:100%;display:flex;flex-direction:column}
+  .hide{display:none!important}
+
+  .top{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--deep);border-bottom:1px solid var(--line)}
+  .menu{width:40px;height:40px;flex:none;border-radius:12px;border:1px solid var(--line);background:var(--soft);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--cream)}
+  .menu:active{transform:scale(.95)}
+  .menu svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .brand{flex:1;min-width:0}
+  .brand b{font-family:var(--serif);font-size:19px;letter-spacing:.5px;display:block}
+  .brand small{color:var(--dim);font-size:12px}
+  #who{color:var(--dim);font-size:12px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:20}
+  #scrim.on{opacity:1;pointer-events:auto}
+  #drawer{position:fixed;top:0;bottom:0;left:0;width:78%;max-width:300px;background:var(--deep);border-right:1px solid var(--line);
+    transform:translateX(-100%);transition:.25s;z-index:21;padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+  #drawer.on{transform:none}
+  #drawer h2{font-family:var(--serif);font-size:24px;margin:0 8px 2px}
+  #drawer p{margin:0 8px 14px;color:var(--dim);font-size:12px}
+  #drawer .grp{margin:12px 10px 4px;color:var(--dim);font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+  .mi{display:flex;align-items:center;gap:12px;background:none;border:0;border-radius:12px;padding:12px;font-size:15px;text-align:left;width:100%}
+  .mi .ic{width:26px;text-align:center;font-size:19px}
+  .mi.on{background:var(--cream);color:var(--bg);font-weight:600}
+
+  main{flex:1;overflow-y:auto;padding:16px 16px 28px}
+  .muted{color:var(--dim)}
+  .center{text-align:center;padding:36px 10px;color:var(--dim)}
+  .err{color:var(--bad);font-size:13px;word-break:break-word}
+
+  .hero{background:var(--cream);color:var(--bg);border-radius:22px;padding:20px;margin-bottom:14px}
+  .hero small{opacity:.7;font-size:12px;letter-spacing:.4px;text-transform:uppercase}
+  .hero .big{font-family:var(--serif);font-size:38px;font-weight:700;margin:4px 0 2px}
+  .hero .sub{font-size:13px;opacity:.75}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+  .tile small{color:var(--dim);font-size:12px}
+  .tile .n{font-family:var(--serif);font-size:25px;font-weight:700;margin-top:4px}
+  .tile .s{font-size:12px;color:var(--dim);margin-top:3px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+  .box h3{margin:0 0 10px;font-family:var(--serif);font-size:16px}
+  .sec{font-family:var(--serif);font-size:17px;margin:18px 2px 10px}
+
+  .row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row.tap{cursor:pointer}
+  .row .l{min-width:0}
+  .row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .s{font-size:12px;color:var(--dim);margin-top:3px}
+  .row .r{text-align:right;white-space:nowrap}
+  .row .a{font-family:var(--serif);font-weight:700}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+
+  .search,.inp{width:100%;background:var(--deep);border:1px solid var(--line);color:var(--cream);border-radius:14px;padding:13px 14px;font-size:16px;outline:none;margin-bottom:12px;font-family:inherit}
+  .inp{margin:10px 0}
+  textarea.inp{min-height:130px;resize:vertical}
+  .search::placeholder,.inp::placeholder{color:var(--dim)}
+  .search:focus,.inp:focus{border-color:var(--cream)}
+  .chips{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+  .chip{flex:none;background:none;border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;color:var(--dim)}
+  .chip.on{background:var(--cream);border-color:var(--cream);color:var(--bg);font-weight:600}
+  .btn{width:100%;background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:13px;font-size:15px}
+  .btn.main{background:var(--cream);border-color:var(--cream);color:var(--bg);font-weight:700}
+  .btn.danger{border-color:var(--bad);color:var(--bad)}
+  .btn:disabled{opacity:.5}
+  .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
+  .acts .btn{padding:12px 8px;font-size:14px}
+  .chk{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--dim);margin:4px 0 12px}
+  .chk input{width:18px;height:18px;accent-color:#F2E6B3}
+  .day{font-size:12px;color:var(--dim);margin:14px 2px 4px;letter-spacing:.4px}
+  .cnt{font-size:12px;color:var(--dim);text-align:right;margin:-6px 2px 8px}
+
+  .bar{height:9px;border-radius:6px;background:var(--soft);overflow:hidden;margin:6px 0 12px}
+  .bar i{display:block;height:100%;background:var(--cream);border-radius:6px}
+  .spark{display:flex;align-items:flex-end;gap:4px;height:70px;margin-top:6px}
+  .spark i{flex:1;opacity:.85;border-radius:4px 4px 0 0;min-height:3px}
+  .chartbox{position:relative;height:210px}
+  .pills{display:flex;gap:8px}
+  .pill{flex:1;background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+  .pill b{display:block;font-family:var(--serif);font-size:18px}
+  .pill span{font-size:11px;color:var(--dim)}
+
+  #sheet{position:fixed;left:0;right:0;bottom:0;max-height:88%;overflow-y:auto;background:var(--deep);border-top:1px solid var(--line);
+    border-radius:22px 22px 0 0;padding:18px 18px 28px;transform:translateY(105%);transition:.25s;z-index:31}
+  #sheet.on{transform:none}
+  #sscrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:30}
+  #sscrim.on{opacity:1;pointer-events:auto}
+  #sheet h2{font-family:var(--serif);margin:0 0 4px;font-size:21px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .kv span:first-child{color:var(--dim)}
+  .kv b{text-align:right}
+
+  .ulink{color:var(--cream);text-decoration:underline;font-weight:400}
+  .dbar{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:12px}
+  .dbar .inp{margin:0}
+  .dbar .btn{width:auto;padding:12px 14px}
+  .warnbox{background:rgba(240,192,90,.12);border:1px solid var(--warn);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:12px;margin-bottom:14px}
+  .kv.tap{cursor:pointer}
+  .pbtn{margin-top:14px}
+  #toast{position:fixed;left:16px;right:16px;bottom:24px;background:var(--cream);color:var(--bg);padding:13px 16px;border-radius:14px;
+    font-weight:600;z-index:50;opacity:0;transform:translateY(20px);transition:.2s;pointer-events:none;text-align:center}
+  #toast.on{opacity:1;transform:none}
+  #toast.bad{background:var(--bad);color:#3A2218}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="s-load" class="center" style="margin-top:30vh"><div style="font-size:40px">⏳</div>Yuklanmoqda…</div>
+
+  <div id="s-deny" class="center hide" style="margin-top:22vh">
+    <div style="font-size:44px">🔒</div>
+    <h3 id="d-t" style="font-family:var(--serif);color:var(--cream)">Kirish yopiq</h3>
+    <div id="d-x"></div><div class="err" id="d-e"></div><br>
+    <button class="btn" style="width:auto;padding:12px 22px" onclick="boot()">Qayta urinish</button>
+  </div>
+
+  <div id="s-main" class="hide" style="height:100%;display:flex;flex-direction:column">
+    <div class="top">
+      <button class="menu" id="menuBtn">☰</button>
+      <div class="brand"><b>BDBUZ</b><small id="pname">Bosh sahifa</small></div>
+      <span id="who"></span>
+      <button class="menu" id="userBtn" aria-label="Foydalanuvchi paneli"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.6-3.6 3.5-5.6 7-5.6s6.4 2 7 5.6"/></svg></button>
+    </div>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <h2>BDBUZ</h2><p>Boshqaruv paneli</p>
+  <button class="mi on" data-p="home"><span class="ic">🏠</span>Bosh sahifa</button>
+  <button class="mi" data-p="stats"><span class="ic">📊</span>Statistika</button>
+  <div class="grp">Odamlar va pul</div>
+  <button class="mi" data-p="users"><span class="ic">👥</span>Foydalanuvchilar</button>
+  <button class="mi" data-p="pay"><span class="ic">💳</span>To'lovlar</button>
+  <button class="mi" data-p="flow"><span class="ic">💸</span>Pul harakati</button>
+  <button class="mi" data-p="wallet"><span class="ic">💼</span>API hamyon</button>
+  <div class="grp">Botlar</div>
+  <button class="mi" data-p="bots"><span class="ic">🤖</span>Owner botlari</button>
+  <button class="mi" data-p="tpl"><span class="ic">🏷</span>Shablonlar va narxlar</button>
+  <button class="mi" data-p="bgs"><span class="ic">🎨</span>Fonlar (sotuv)</button>
+  <div class="grp">Boshqaruv</div>
+  <button class="mi" data-p="bc"><span class="ic">📣</span>Xabar yuborish</button>
+  <button class="mi" data-p="sets"><span class="ic">⚙️</span>Sozlamalar</button>
+  <button class="mi" data-p="admins"><span class="ic">👑</span>Adminlar</button>
+</aside>
+
+<div id="sscrim"></div>
+<div id="sheet"></div>
+<div id="toast"></div>
+
+<script>
+const API = "https://api.bdbuz.store";
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try{ tg.setHeaderColor("#4B2E21"); tg.setBackgroundColor("#4B2E21"); }catch(e){} }
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = n => String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+function show(id){ ["s-load","s-deny","s-main"].forEach(x=>$(x).classList.toggle("hide", x!==id)); }
+const digits = s => String(s || "").replace(/\D/g, "");
+
+async function api(path, body){
+  const h = { "Authorization": "tma " + (tg ? tg.initData : "") };
+  const o = { headers: h };
+  if(body !== undefined){ o.method = "POST"; h["Content-Type"] = "application/json"; o.body = JSON.stringify(body); }
+  const r = await fetch(API + path, o);
+  let data = null; try{ data = await r.json(); }catch(e){}
+  return { status: r.status, data };
+}
+async function getOk(path){
+  const {status, data} = await api(path);
+  if(status !== 200 || !data || !data.ok) throw new Error((data && data.message) || ("javob: " + status));
+  return data;
+}
+function toast(msg, bad){
+  const t = $("toast"); t.textContent = msg; t.className = "on" + (bad ? " bad" : "");
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.className = "", 2800);
+}
+// POST: muvaffaqiyatda data, aks holda null (xato toast bilan ko'rsatiladi)
+async function post(path, body){
+  try{
+    const r = await api(path, body);
+    if(r.status === 200 && r.data && r.data.ok) return r.data;
+    toast((r.data && r.data.message) || ("Xatolik (" + r.status + ")"), true);
+  }catch(e){ toast("Aloqa yo'q", true); }
+  return null;
+}
+async function run(btn, fn){
+  if(btn.disabled) return;
+  btn.disabled = true; const t = btn.textContent; btn.textContent = "…";
+  try{ await fn(); } finally{ btn.disabled = false; btn.textContent = t; }
+}
+function ask(text, yes){
+  if(tg && tg.showConfirm) tg.showConfirm(text, ok => { if(ok) yes(); });
+  else if(confirm(text)) yes();
+}
+
+let ME = null, chart = null, token = 0, PAGE = "home";
+
+async function boot(){
+  show("s-load");
+  try{
+    if(!tg || !tg.initData) return deny("Telegram ichida oching", "Bu sahifa faqat bot ichidagi tugma orqali ishlaydi.");
+    const {status, data} = await api("/api/me");
+    if(status === 200 && data && data.admin === false) deny("Siz admin emassiz", "Bu bo'lim faqat adminlar uchun.");
+    else if(status === 200){ ME = data; $("who").textContent = data.name || ""; show("s-main"); go("home"); }
+    else if(status === 403) deny("Siz admin emassiz", "Bu bo'lim faqat adminlar uchun.");
+    else deny("Xatolik", "Server javobi: " + status);
+  }catch(e){ deny("Server bilan aloqa yo'q", "Birozdan keyin qayta urinib ko'ring.", String(e)); }
+}
+function deny(t, x, e){ $("d-t").textContent = t; $("d-x").textContent = x; $("d-e").textContent = e || ""; show("s-deny"); }
+
+/* ---- yon menyu ---- */
+function drawer(on){ $("drawer").classList.toggle("on", on); $("scrim").classList.toggle("on", on); }
+$("menuBtn").onclick = () => drawer(true);
+$("userBtn").onclick = () => { location.href = "user.html"; };  // foydalanuvchi paneliga o'tish
+$("scrim").onclick = () => drawer(false);
+document.querySelectorAll(".mi").forEach(b => b.onclick = () => { drawer(false); go(b.dataset.p); });
+
+/* ---- pastki oyna ---- */
+function sheet(html){ $("sheet").innerHTML = html; $("sheet").classList.add("on"); $("sscrim").classList.add("on"); }
+function closeSheet(){ $("sheet").classList.remove("on"); $("sscrim").classList.remove("on"); }
+$("sscrim").onclick = closeSheet;
+
+const TITLES = { home:"Bosh sahifa", stats:"Statistika", users:"Foydalanuvchilar", pay:"To'lovlar", flow:"Pul harakati", bots:"Owner botlari",
+                 tpl:"Shablonlar va narxlar", bgs:"Fonlar (sotuv)", wallet:"API hamyon", bc:"Xabar yuborish", admins:"Adminlar", sets:"Sozlamalar" };
+function go(p){
+  token++; PAGE = p; closeSheet(); stopBcPoll();
+  if(chart){ chart.destroy(); chart = null; }
+  document.querySelectorAll(".mi").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+  $("pname").textContent = TITLES[p];
+  const v = $("view"); v.scrollTop = 0;
+  v.innerHTML = '<div class="center">Yuklanmoqda…</div>';
+  ({home:pageHome, stats:pageStats, users:pageUsers, pay:pagePay, flow:pageFlow, bots:pageBots,
+    tpl:pageTpl, bgs:pageBgs, wallet:pageWallet, bc:pageBc, admins:pageAdmins, sets:pageSets})[p](v, token);
+}
+function fail(v, e){
+  v.innerHTML = '<div class="box"><div class="err">Yuklab bo\'lmadi (' + esc(e.message) + ')</div></div><button class="btn" onclick="go(PAGE)">Qayta urinish</button>' +
+    (DAY ? '<button class="btn" style="margin-top:8px" onclick="DAY=\'\';go(PAGE)">📅 Sanani tozalash</button>' : '');
+}
+
+const PLAN = { starter:"🥉 Starter", pro:"🥈 Pro", vip:"🥇 VIP" };
+const ST = { active:["🟢","faol","ok"], grace:["🟠","muhlat","warn"], stopped:["🔴","to'xtatilgan","bad"] };
+function parseDT(s){ const m = /(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)/.exec(s||""); return m ? new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]) : null; }
+function daysLeft(s){ const d = parseDT(s); return d ? Math.ceil((d - Date.now()) / 86400000) : null; }
+function openTg(e, u){
+  e.preventDefault(); e.stopPropagation();
+  const url = "https://t.me/" + u;
+  if(tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
+}
+const uname = u => u ? '<a class="ulink" href="https://t.me/' + esc(u) + '" onclick="openTg(event,\'' + esc(u) + '\')">@' + esc(u) + '</a>' : "";
+
+/* ---- sana paneli: hamma ro'yxatlarda (KK.OO.YY) ---- */
+let DAY = "";
+const dq = sep => DAY ? sep + "date=" + encodeURIComponent(DAY) : "";
+function fmtDay(s){
+  const d = digits(s).slice(0, 6); let o = d.slice(0, 2);
+  if(d.length > 2) o += "." + d.slice(2, 4);
+  if(d.length > 4) o += "." + d.slice(4, 6);
+  return o;
+}
+function dateBar(){
+  return '<div class="dbar"><input class="inp" id="dq" inputmode="numeric" maxlength="8" placeholder="Sana: KK.OO.YY (bo\'sh = bugun)" value="' + esc(DAY) + '" autocomplete="off">' +
+    '<button class="btn main" id="dgo">Ko\'rish</button>' + (DAY ? '<button class="btn" id="dclr">Bugun</button>' : '') + '</div>';
+}
+function bindDate(){
+  const i = $("dq"); if(!i) return;
+  i.oninput = e => { e.target.value = fmtDay(e.target.value); };
+  const apply = () => {
+    const v = i.value.trim();
+    if(v && !/^\d{2}\.\d{2}\.\d{2}$/.test(v)) return toast("Sana: KK.OO.YY, masalan 17.10.26", true);
+    DAY = v; go(PAGE);
+  };
+  $("dgo").onclick = apply; i.onkeydown = e => { if(e.key === "Enter") apply(); };
+  if($("dclr")) $("dclr").onclick = () => { DAY = ""; go(PAGE); };
+}
+
+/* ---- pul kiritish oynasi: ➕/➖ + summa (+ xabar belgisi) ---- */
+function moneyForm(o){
+  let sign = 1;
+  sheet(`<h2>${esc(o.title)}</h2><div class="muted">${o.sub}</div>
+    <div class="chips" style="margin-top:12px"><button class="chip on" id="mf-p">➕ Qo'shish</button><button class="chip" id="mf-m">➖ Ayirish</button></div>
+    <input class="inp" id="mf-a" inputmode="numeric" placeholder="Summa (UZS)" autocomplete="off">
+    <label class="chk"><input type="checkbox" id="mf-n" checked> Egasiga xabar yuborilsin</label>
+    <button class="btn main" id="mf-go">Saqlash</button>
+    <button class="btn" id="mf-bk" style="margin-top:8px">Orqaga</button>`);
+  const setSign = s => { sign = s; $("mf-p").classList.toggle("on", s > 0); $("mf-m").classList.toggle("on", s < 0); };
+  $("mf-p").onclick = () => setSign(1); $("mf-m").onclick = () => setSign(-1);
+  $("mf-bk").onclick = o.back;
+  $("mf-go").onclick = e => {
+    const n = parseInt(digits($("mf-a").value), 10);
+    if(!n) return toast("Summani yozing", true);
+    ask(`${sign > 0 ? "Qo'shish" : "Ayirish"}: ${money(n)} UZS. Tasdiqlaysizmi?`, () => run(e.target, async () => {
+      const r = await post(o.path, { ...o.extra, amount: sign * n, notify: $("mf-n").checked });
+      if(r){ toast("✅ Saqlandi" + (r.notified === false ? " (xabar yetmadi)" : "")); await o.done(r); }
+    }));
+  };
+}
+function textForm(o){
+  sheet(`<h2>${esc(o.title)}</h2><div class="muted">${o.sub || ""}</div>
+    <textarea class="inp" id="tf-t" maxlength="4000" placeholder="Xabar matni…"></textarea>
+    <button class="btn main" id="tf-go">Yuborish</button>
+    <button class="btn" id="tf-bk" style="margin-top:8px">Orqaga</button>`);
+  $("tf-bk").onclick = o.back;
+  $("tf-go").onclick = e => {
+    const t = $("tf-t").value.trim();
+    if(!t) return toast("Matnni yozing", true);
+    ask("Xabar yuborilsinmi?", () => run(e.target, async () => {
+      const r = await post(o.path, { ...o.extra, text: t });
+      if(r){ toast("✅ Yuborildi"); o.back(); }
+    }));
+  };
+}
+
+/* ================= BOSH ================= */
+async function pageHome(v, my){
+  try{
+    const [s, b] = await Promise.all([getOk("/api/stats"), getOk("/api/bots")]);
+    if(my !== token) return;
+    BOTS = b.items;
+    const max = Math.max(1, ...s.series.slice(-14).map(x=>x.v));
+    const spark = s.series.slice(-14).map(x => '<i style="background:#4B2E21;height:' + Math.max(4, Math.round(x.v / max * 100)) + '%"></i>').join("");
+    const watch = b.items.map(x => ({x, left: daysLeft(x.expires)}))
+      .filter(o => o.x.status !== "active" || (o.left !== null && o.left <= 3) || !o.x.running)
+      .slice(0, 8);
+    v.innerHTML =
+      '<div class="hero"><small>Bugungi tushum</small><div class="big">' + money(s.income_today) + ' <span style="font-size:16px">UZS</span></div>' +
+        '<div class="sub">7 kunda ' + money(s.income_7) + ' · 30 kunda ' + money(s.income_30) + '</div>' +
+        '<div class="spark">' + spark + '</div></div>' +
+      '<div class="grid">' +
+        '<div class="tile"><small>Foydalanuvchilar</small><div class="n">' + money(s.users_total) + '</div><div class="s">bugun +' + s.new_today + ' · 7 kun +' + s.new_7 + '</div></div>' +
+        '<div class="tile"><small>Jami balans</small><div class="n">' + money(s.balance_total) + '</div><div class="s">UZS</div></div>' +
+        '<div class="tile"><small>Owner botlari</small><div class="n">' + s.bots.total + '</div><div class="s">faol ' + s.bots.active + ' · muhlat ' + s.bots.grace + ' · to\'xtagan ' + s.bots.stopped + '</div></div>' +
+        '<div class="tile"><small>Jami tushum</small><div class="n">' + money(s.income_all) + '</div><div class="s">UZS</div></div>' +
+      '</div>' +
+      '<div class="sec">Diqqat kerak</div><div class="box">' +
+        (watch.length ? watch.map(o => {
+          const st = ST[o.x.status] || ["⚪", o.x.status || "?", ""];
+          const note = !o.x.running ? "o'chiq" : (o.left !== null && o.left <= 3 ? (o.left <= 0 ? "muddat tugadi" : o.left + " kun qoldi") : st[1]);
+          return '<div class="row tap" onclick="botSheet(\'' + esc(o.x.id) + '\')"><div class="l"><div class="t">' + st[0] + ' ' + (o.x.username ? '@' + esc(o.x.username) : 'bot ' + esc(o.x.id)) + '</div>' +
+            '<div class="s">' + esc(o.x.owner_name || o.x.owner) + ' · ' + esc(o.x.expires) + '</div></div>' +
+            '<div class="r ' + st[2] + '">' + esc(note) + '</div></div>';
+        }).join("") : '<div class="muted" style="padding:6px 0">Hammasi joyida ✅</div>') +
+      '</div>';
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+/* ================= STATISTIKA ================= */
+let STATS = null, sWin = "day";
+const WIN = { day:"Kun", d7:"7 kun", d30:"30 kun", all:"Hammasi" };
+const KIND = { new:"🆕 Yangi bot", renew:"📅 Uzaytirish", auto:"🔁 Avto-uzaytirish", upgrade:"⬆️ Tarif oshirish", lost:"🔴 Yo'qotilgan" };
+async function pageStats(v, my){
+  try{
+    const d = await getOk("/api/stats" + dq("?"));
+    if(my !== token) return;
+    STATS = d; drawStats(v);
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function drawStats(v){
+  const d = STATS, sl = d.sales, lbl = d.day ? "shu kun" : "bugun";
+  if(chart){ chart.destroy(); chart = null; }
+  const tb = Math.max(1, d.bots.total), tp = Math.max(1, d.plans.starter + d.plans.pro + d.plans.vip);
+  const pl = (k, n) => '<div style="display:flex;justify-content:space-between"><span>' + PLAN[k] + '</span><b>' + n + '</b></div><div class="bar"><i style="width:' + Math.round(n / tp * 100) + '%"></i></div>';
+  let sales = "";
+  if(sl){
+    const w = sl[sWin], tot = Math.max(1, w.sum);
+    const share = list => list.length ? list.map(x =>
+      '<div style="display:flex;justify-content:space-between;gap:8px"><span>' + esc(x.title || PLAN[x.key] || x.key) + ' <span class="muted">· ' + x.count + ' ta</span></span><b>' + money(x.sum) + '</b></div>' +
+      '<div class="bar"><i style="width:' + Math.round(x.sum / tot * 100) + '%"></i></div>').join("") : '<div class="muted" style="padding:4px 0">Sotuv yo\'q</div>';
+    sales =
+      (sl.approx ? '<div class="warnbox">⚠️ Bu kun TAXMINIY: sotuv logi ' + esc(sl.since) + ' dan aniq yuritiladi. Undan oldin faqat hozirgi botlarning birinchi sotuvi ko\'rinadi.</div>'
+                 : (sl.since ? '<div class="muted" style="font-size:12px;margin:-4px 2px 12px">Sotuv hisobi ' + esc(sl.since) + ' dan aniq, undan oldingi kunlar taxminiy.</div>' : '')) +
+      '<div class="box"><h3>Sotuv — botlar (UZS)</h3><div class="pills">' +
+        '<div class="pill"><b>' + money(sl.day.sum) + '</b><span>' + lbl + '</span></div>' +
+        '<div class="pill"><b>' + money(sl.d7.sum) + '</b><span>7 kun</span></div>' +
+        '<div class="pill"><b>' + money(sl.d30.sum) + '</b><span>30 kun</span></div></div></div>' +
+      '<div class="chips" id="swin">' + Object.keys(WIN).map(k => '<button class="chip' + (k === sWin ? ' on' : '') + '" data-k="' + k + '">' + (k === "day" ? (d.day ? d.day : "Bugun") : WIN[k]) + '</button>').join("") + '</div>' +
+      '<div class="box"><h3>Shablonlar bo\'yicha — ' + money(w.sum) + ' UZS</h3>' + share(w.tpl) + '</div>' +
+      '<div class="box"><h3>Tariflar bo\'yicha</h3>' + share(w.plan.map(x => ({ ...x, title: PLAN[x.key] || x.key }))) + '</div>' +
+      '<div class="box"><h3>Sotuv turlari</h3>' + ["new","renew","auto","upgrade","lost"].map(k =>
+        '<div class="kv"><span>' + KIND[k] + '</span><b>' + w[k] + ' ta</b></div>').join("") + '</div>';
+  }
+  const r = d.ref, rk = (o) =>
+    '<div class="pill"><b>' + o.referral + '</b><span>referal</span></div><div class="pill"><b>' + o.direct + '</b><span>o\'zi</span></div><div class="pill"><b>' + o.unknown + '</b><span>noma\'lum</span></div>';
+  v.innerHTML = dateBar() +
+    (d.day ? '<div class="muted" style="margin:-4px 2px 12px">📅 ' + esc(d.day) + ' kuni bo\'yicha</div>' : '') +
+    '<div class="box"><h3>Tushum — to\'ldirishlar (UZS)</h3><div class="pills">' +
+      '<div class="pill"><b>' + money(d.income_today) + '</b><span>' + lbl + '</span></div>' +
+      '<div class="pill"><b>' + money(d.income_7) + '</b><span>7 kun</span></div>' +
+      '<div class="pill"><b>' + money(d.income_30) + '</b><span>30 kun</span></div></div></div>' +
+    sales +
+    '<div class="box"><h3>Oxirgi 30 kun</h3><div class="chartbox"><canvas id="ch"></canvas></div></div>' +
+    '<div class="box"><h3>Yangi foydalanuvchilar</h3><div class="pills">' +
+      '<div class="pill"><b>' + d.new_today + '</b><span>' + lbl + '</span></div>' +
+      '<div class="pill"><b>' + d.new_7 + '</b><span>7 kun</span></div>' +
+      '<div class="pill"><b>' + d.new_30 + '</b><span>30 kun</span></div></div></div>' +
+    '<div class="box"><h3>Qayerdan kelgan — ' + lbl + '</h3><div class="pills">' + rk(r.day) + '</div>' +
+      '<h3 style="margin-top:14px">Hammasi</h3><div class="pills">' + rk(r.all) + '</div>' +
+      '<div class="muted" style="font-size:12px;margin-top:8px">Referal manbasi faqat yangi kirganlar uchun aniq; eskilari «noma\'lum».</div>' +
+      (r.top.length ? '<h3 style="margin-top:14px">Eng ko\'p taklif qilganlar</h3>' + r.top.map(t =>
+        '<div class="row tap" onclick="userSheet(\'' + esc(t.id) + '\')"><div class="l"><div class="t">' + esc(t.name || ("ID " + t.id)) + '</div>' +
+        '<div class="s">' + (t.username ? uname(t.username) : "ID " + esc(t.id)) + '</div></div><div class="r"><div class="a">' + t.count + '</div></div></div>').join("") : "") + '</div>' +
+    '<div class="box"><h3>Botlar holati (' + d.bots.total + ')</h3>' +
+      '<div style="display:flex;justify-content:space-between"><span class="ok">● faol</span><b>' + d.bots.active + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.active / tb * 100) + '%"></i></div>' +
+      '<div style="display:flex;justify-content:space-between"><span class="warn">● muhlat</span><b>' + d.bots.grace + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.grace / tb * 100) + '%"></i></div>' +
+      '<div style="display:flex;justify-content:space-between"><span class="bad">● to\'xtagan</span><b>' + d.bots.stopped + '</b></div><div class="bar"><i style="width:' + Math.round(d.bots.stopped / tb * 100) + '%"></i></div></div>' +
+    '<div class="box"><h3>Tariflar (hozirgi botlar)</h3>' + pl("starter", d.plans.starter) + pl("pro", d.plans.pro) + pl("vip", d.plans.vip) + '</div>';
+  bindDate();
+  document.querySelectorAll("#swin .chip").forEach(c => c.onclick = () => { sWin = c.dataset.k; const y = $("view").scrollTop; drawStats(v); $("view").scrollTop = y; });
+  if(window.Chart){
+    Chart.defaults.color = "rgba(242,230,179,.62)";
+    const ds = [{ label: "Tushum", data: d.series.map(x=>x.v), borderColor: "#F2E6B3", backgroundColor: "rgba(242,230,179,.15)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }];
+    if(sl) ds.push({ label: "Sotuv", data: sl.series.map(x=>x.v), borderColor: "#A8D08D", backgroundColor: "rgba(168,208,141,.1)", fill: true, tension: .35, pointRadius: 0, borderWidth: 2 });
+    chart = new Chart($("ch"), {
+      type: "line", data: { labels: d.series.map(x=>x.d), datasets: ds },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: !!sl, labels: { boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.dataset.label + ": " + money(c.parsed.y) + " UZS" } } },
+        scales: { x: { ticks: { maxTicksLimit: 6, maxRotation: 0 }, grid: { display: false }, border: { color: "rgba(242,230,179,.18)" } },
+                  y: { beginAtZero: true, ticks: { maxTicksLimit: 4, callback: n => money(n) }, grid: { color: "rgba(242,230,179,.1)" }, border: { display: false } } } }
+    });
+  }
+}
+
+/* ================= FOYDALANUVCHILAR ================= */
+let uQ = "", uPage = 1, uTimer = null;
+const REFT = { referral:"🔗 referal", direct:"o'zi kirgan", unknown:"manba noma'lum" };
+function pageUsers(v, my){
+  v.innerHTML = dateBar() + '<input class="search" id="uq" placeholder="Ism, @username yoki ID…" value="' + esc(uQ) + '"><div class="box" id="ul" style="padding:4px 14px"></div><div id="um"></div>';
+  bindDate();
+  $("uq").oninput = e => { uQ = e.target.value; clearTimeout(uTimer); uTimer = setTimeout(() => { uPage = 1; $("ul").innerHTML = ""; loadUsers(token); }, 350); };
+  uPage = 1; loadUsers(my);
+}
+async function loadUsers(my){
+  try{
+    const d = await getOk("/api/users?page=" + uPage + "&q=" + encodeURIComponent(uQ) + dq("&"));
+    if(my !== token) return;
+    const ul = $("ul"); if(!ul) return;
+    if(uPage === 1 && !d.items.length) ul.innerHTML = '<div class="center">Hech kim topilmadi' + (DAY ? ' (' + esc(DAY) + ')' : '') + '</div>';
+    ul.insertAdjacentHTML("beforeend", d.items.map(u =>
+      '<div class="row tap" onclick="userSheet(\'' + esc(u.id) + '\')"><div class="l"><div class="t">' + esc(u.name || "Ismsiz") +
+        (u.username ? ' ' + uname(u.username) : '') + '</div>' +
+        '<div class="s">ID ' + esc(u.id) + ' · ' + esc(u.registered) + ' · botlar ' + u.bots + ' · ' + (REFT[u.ref] || "") + '</div></div>' +
+      '<div class="r"><div class="a">' + money(u.balance) + '</div><div class="s">UZS</div></div></div>').join(""));
+    $("um").innerHTML = d.page < d.pages
+      ? '<button class="btn" id="more">Yana yuklash (jami ' + d.total + ')</button>'
+      : '<div class="muted" style="text-align:center;font-size:12px">Jami: ' + d.total + '</div>';
+    const m = $("more"); if(m) m.onclick = () => { uPage++; m.textContent = "Yuklanmoqda…"; loadUsers(my); };
+  }catch(e){
+    if(my !== token) return;
+    $("um").innerHTML = '<div class="err" style="margin:8px 0">Yuklab bo\'lmadi (' + esc(e.message) + ')</div><button class="btn" onclick="loadUsers(token)">Qayta urinish</button>';
+  }
+}
+async function userSheet(id, back){
+  sheet('<div class="center">Yuklanmoqda…</div>');
+  try{
+    const d = await getOk("/api/user?id=" + encodeURIComponent(id)), u = d.user;
+    const src = u.ref_kind === "referral" ? "🔗 Referal orqali" + (u.ref_by ? " — " + esc(u.ref_by.name || ("ID " + u.ref_by.id)) + (u.ref_by.username ? " (" + uname(u.ref_by.username) + ")" : "") : "")
+              : u.ref_kind === "direct" ? "O'zi kirgan" : "Noma'lum (eski)";
+    sheet(`<h2>${esc(u.name || "Ismsiz")} ${d.is_admin ? "👑" : ""}</h2>
+      <div style="margin-bottom:6px">${u.username ? uname(u.username) : '<span class="muted">username yo\'q</span>'}</div>
+      <div class="kv"><span>ID</span><b>${esc(u.id)}</b></div>
+      <div class="kv"><span>Balans</span><b>${money(u.balance)} UZS</b></div>
+      <div class="kv"><span>Botlarga sarflagan</span><b>${money(u.spent)} UZS</b></div>
+      <div class="kv"><span>Ro'yxatdan o'tgan</span><b>${esc(u.registered)}</b></div>
+      <div class="kv"><span>Qayerdan kelgan</span><b>${src}</b></div>
+      <div class="kv ${u.invited ? "tap" : ""}" id="u-inv"><span>Taklif qilgan odamlar</span><b>${u.invited}${u.invited ? " ›" : ""}</b></div>
+      <div class="kv"><span>Botlari</span><b>${d.bots.length}</b></div>
+      ${d.bots.map(b => { const st = ST[b.status] || ["⚪","",""]; return `<div class="row tap" data-b="${esc(b.id)}"><div class="l"><div class="t">${st[0]} ${b.username ? "@" + esc(b.username) : "bot " + esc(b.id)}</div><div class="s">${esc(b.template)} · ${esc(b.expires)}</div></div><div class="r"><div class="a">${esc(PLAN[b.plan] || b.plan || "-")}</div></div></div>`; }).join("")}
+      <button class="btn" id="u-bal" style="margin-top:14px">💰 Balansni o'zgartirish</button>
+      <button class="btn main pbtn" id="u-msg">✉️ Xabar yuborish</button>
+      <button class="btn" id="u-bk" style="margin-top:8px">${back ? "Orqaga" : "Yopish"}</button>`);
+    $("u-bk").onclick = back || closeSheet;
+    if(u.invited) $("u-inv").onclick = () => refList(u.id, () => userSheet(id, back));
+    $("u-bal").onclick = () => moneyForm({
+      title: "Balansni o'zgartirish", sub: `${esc(u.name || "Ismsiz")} · hozir ${money(u.balance)} UZS`,
+      path: "/api/user/balance", extra: { id: u.id }, back: () => userSheet(id, back),
+      done: async () => { await userSheet(id, back); if(PAGE === "users") pageUsers($("view"), token); },
+    });
+    $("u-msg").onclick = () => textForm({ title: "Xabar yuborish", sub: esc(u.name || "Ismsiz"), path: "/api/user/message", extra: { id: u.id }, back: () => userSheet(id, back) });
+    document.querySelectorAll("#sheet .row[data-b]").forEach(r => r.onclick = () => openBot(r.dataset.b));
+  }catch(e){ sheet(`<div class="err">Yuklab bo'lmadi (${esc(e.message)})</div><button class="btn" onclick="closeSheet()" style="margin-top:12px">Yopish</button>`); }
+}
+async function openBot(id){
+  if(!BOTS.find(x => String(x.id) === String(id))){ try{ BOTS = (await getOk("/api/bots")).items; }catch(e){} }
+  botSheet(id);
+}
+
+/* ================= TO'LOVLAR ================= */
+let PAYS = [], pFilter = "all";
+async function pagePay(v, my){
+  try{
+    const d = await getOk("/api/payments" + dq("?"));
+    if(my !== token) return;
+    PAYS = d.items; drawPay(v);
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function drawPay(v){
+  const kinds = ["all"].concat([...new Set(PAYS.map(p => p.purpose))]);
+  const list = PAYS.filter(p => pFilter === "all" || p.purpose === pFilter);
+  const sum = list.reduce((a, p) => a + p.amount, 0);
+  let last = "", rows = "";
+  list.forEach(p => {
+    const day = p.time.slice(0, 10);
+    if(day !== last){ rows += '<div class="day">' + esc(day) + '</div>'; last = day; }
+    rows += '<div class="row"><div class="l"><div class="t">' + esc(p.name || ("ID " + p.user_id)) + (p.username ? ' ' + uname(p.username) : '') + '</div>' +
+      '<div class="s">' + esc(p.time.slice(11)) + ' · ' + esc(p.purpose) + '</div></div><div class="r"><div class="a ok">+' + money(p.amount) + '</div><div class="s">UZS</div></div></div>';
+  });
+  v.innerHTML = dateBar() +
+    '<div class="hero" style="padding:16px"><small>Ko\'rsatilgan to\'lovlar</small><div class="big" style="font-size:30px">' + money(sum) + ' <span style="font-size:14px">UZS</span></div><div class="sub">' + list.length + ' ta to\'lov</div></div>' +
+    '<div class="chips">' + kinds.map(k => '<button class="chip' + (k === pFilter ? ' on' : '') + '" data-k="' + esc(k) + '">' + (k === "all" ? "Hammasi" : esc(k)) + '</button>').join("") + '</div>' +
+    (list.length ? '<div class="box" style="padding:4px 14px">' + rows + '</div>' : '<div class="center">To\'lov yo\'q</div>');
+  bindDate();
+  v.querySelectorAll(".chip").forEach(c => c.onclick = () => { pFilter = c.dataset.k; drawPay(v); });
+}
+
+/* ================= PUL HARAKATI (owner logi: kim, qancha, qachon, qayerdan) ================= */
+let fKind = "all", fPage = 1, fLast = "";
+function pageFlow(v, my){
+  v.innerHTML = dateBar() +
+    '<div class="hero" id="fh" style="padding:16px"><small>Pul harakati</small><div class="big" style="font-size:30px">…</div></div>' +
+    '<div class="chips" id="fk">' + [["all", "Hammasi"], ["in", "Kirim"], ["out", "Chiqim"]].map(x =>
+      '<button class="chip' + (x[0] === fKind ? ' on' : '') + '" data-k="' + x[0] + '">' + x[1] + '</button>').join("") + '</div>' +
+    '<div class="box" id="fl" style="padding:4px 14px"></div><div id="fm"></div>';
+  bindDate();
+  v.querySelectorAll("#fk .chip").forEach(c => c.onclick = () => { fKind = c.dataset.k; pageFlow(v, token); });
+  fPage = 1; fLast = ""; loadFlow(my);
+}
+async function loadFlow(my){
+  try{
+    const d = await getOk("/api/wallet/log?page=" + fPage + "&kind=" + fKind + dq("&"));
+    if(my !== token) return;
+    const fl = $("fl"); if(!fl) return;
+    if(fPage === 1){
+      $("fh").innerHTML = '<small>' + (DAY ? esc(DAY) : "Hamma vaqt") + ' · kirim</small>' +
+        '<div class="big" style="font-size:30px">+' + money(d.sum_in) + ' <span style="font-size:14px">UZS</span></div>' +
+        '<div class="sub">Chiqim: −' + money(d.sum_out) + ' UZS · ' + d.total + ' ta harakat</div>';
+      if(!d.items.length) fl.innerHTML = '<div class="center">Harakat yo\'q' + (DAY ? ' (' + esc(DAY) + ')' : '') + '</div>';
+    }
+    fl.insertAdjacentHTML("beforeend", d.items.map(i => {
+      const pos = i.delta > 0, day = i.time.slice(0, 10);
+      let h = "";
+      if(day !== fLast){ h += '<div class="day">' + esc(day) + '</div>'; fLast = day; }
+      return h + '<div class="row tap" onclick="userSheet(\'' + esc(i.uid) + '\')"><div class="l"><div class="t">' + esc(i.name || ("ID " + i.uid)) +
+        (i.username ? ' ' + uname(i.username) : '') + '</div>' +
+        '<div class="s">' + esc(i.time.slice(11)) + ' · ' + esc(i.label) + '</div>' +
+        '<div class="s" style="opacity:.7">' + esc(i.src) + (i.after !== null && i.after !== undefined ? ' · qoldiq ' + money(i.after) : '') + '</div></div>' +
+        '<div class="r"><div class="a ' + (pos ? 'ok' : 'bad') + '">' + (pos ? '+' : '−') + money(Math.abs(i.delta)) + '</div><div class="s">UZS</div></div></div>';
+    }).join(""));
+    $("fm").innerHTML = d.page < d.pages
+      ? '<button class="btn" id="fmore">Yana yuklash (jami ' + d.total + ')</button>'
+      : '<div class="muted" style="text-align:center;font-size:12px">Jami: ' + d.total + '</div>';
+    const m = $("fmore"); if(m) m.onclick = () => { fPage++; m.textContent = "Yuklanmoqda…"; loadFlow(my); };
+  }catch(e){
+    if(my !== token) return;
+    const fm = $("fm"); if(!fm) return;
+    fm.innerHTML = '<div class="err" style="margin:8px 0">Yuklab bo\'lmadi (' + esc(e.message) + ')</div><button class="btn" onclick="loadFlow(token)">Qayta urinish</button>';
+  }
+}
+
+/* ================= OWNER BOTLARI ================= */
+let BOTS = [], bStatus = "all", bPlan = "all", bQ = "";
+async function pageBots(v, my){
+  try{
+    const d = await getOk("/api/bots" + dq("?"));
+    if(my !== token) return;
+    BOTS = d.items; drawBots(v);
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function drawBots(v){
+  const q = bQ.trim().toLowerCase().replace(/^@/, "");
+  const list = BOTS.filter(b =>
+    (bStatus === "all" || b.status === bStatus) && (bPlan === "all" || b.plan === bPlan) &&
+    (!q || (b.username || "").toLowerCase().includes(q) || String(b.owner).includes(q) || (b.owner_name || "").toLowerCase().includes(q)));
+  const chip = (grp, k, t, cur) => '<button class="chip' + (k === cur ? ' on' : '') + '" data-g="' + grp + '" data-k="' + k + '">' + t + '</button>';
+ v.innerHTML = dateBar() +
+    '<input class="search" id="bq" placeholder="Bot, owner yoki ID…" value="' + esc(bQ) + '">' +
+    '<div class="chips">' + chip("s","all","Hammasi",bStatus) + chip("s","active","🟢 Faol",bStatus) + chip("s","grace","🟠 Muhlat",bStatus) + chip("s","stopped","🔴 To'xtagan",bStatus) + '</div>' +
+    '<div class="chips">' + chip("p","all","Barcha tarif",bPlan) + chip("p","starter","Starter",bPlan) + chip("p","pro","Pro",bPlan) + chip("p","vip","VIP",bPlan) + '</div>' +
+    '<div class="muted" style="font-size:12px;margin:0 2px 8px">' + list.length + ' ta bot · muddati yaqinlari tepada</div>' +
+    (list.length ? '<div class="box" style="padding:4px 14px">' + list.map(b => {
+      const st = ST[b.status] || ["⚪", b.status || "?", ""], left = daysLeft(b.expires);
+      return '<div class="row tap" onclick="botSheet(\'' + esc(b.id) + '\')"><div class="l"><div class="t">' + st[0] + ' ' + (b.username ? '@' + esc(b.username) : 'bot ' + esc(b.id)) + '</div>' +
+        '<div class="s">' + esc(b.owner_name || b.owner) + ' · ' + (left === null ? esc(b.expires) : left + ' kun qoldi') + (b.running ? '' : ' · o\'chiq') + '</div></div>' +
+        '<div class="r"><div class="a">' + esc(PLAN[b.plan] || b.plan) + '</div><div class="s">' + money(b.price) + '/oy</div></div></div>';
+    }).join("") + '</div>' : '<div class="center">Bot topilmadi</div>');
+  bindDate();
+  const inp = $("bq");
+  inp.oninput = e => { bQ = e.target.value; const pos = inp.selectionStart; drawBots(v); const n = $("bq"); n.focus(); n.setSelectionRange(pos, pos); };
+  v.querySelectorAll(".chip").forEach(c => c.onclick = () => { if(c.dataset.g === "s") bStatus = c.dataset.k; else bPlan = c.dataset.k; drawBots(v); });
+}
+async function refreshBots(){
+  try{ BOTS = (await getOk("/api/bots" + (PAGE === "bots" ? dq("?") : ""))).items; }catch(e){}
+  if(PAGE === "bots") drawBots($("view"));
+}
+async function botSheet(id){
+  sheet('<div class="center">Yuklanmoqda…</div>');
+  try{
+    const d = await getOk("/api/bot?id=" + encodeURIComponent(id)), b = d.bot;
+    const st = ST[b.status] || ["⚪", b.status || "?", ""], left = daysLeft(b.expires);
+    const name = b.username ? "@" + b.username : "bot " + b.id;
+    const state = b.token_error ? "⚠️ token yaroqsiz" : (b.enabled ? (b.running ? "ishlayapti" : "yoqilgan, hozir o'chiq") : "to'xtatilgan");
+    sheet(`<h2>${esc(name)}</h2><div class="${st[2]}" style="margin-bottom:6px">${st[0]} ijara: ${st[1]} · ${state}</div>
+      <div class="kv"><span>Shablon</span><b>${esc(b.template_title)}</b></div>
+      <div class="kv tap" id="b-ow"><span>Owner (bosing)</span><b>${esc(b.owner_name || "—")} ›</b></div>
+      <div class="kv"><span>Username</span><b>${b.owner_username ? uname(b.owner_username) : "—"}</b></div>
+      <div class="kv"><span>Owner ID</span><b>${esc(b.owner)}</b></div>
+      <div class="kv"><span>Tarif</span><b>${esc(PLAN[b.plan] || b.plan || "—")} · ${money(b.price)} UZS/oy</b></div>
+      <div class="kv"><span>Muddat</span><b>${esc(b.expires)}${left === null ? "" : " (" + (left <= 0 ? "tugagan" : left + " kun") + ")"}</b></div>
+      <div class="kv"><span>Yaratilgan</span><b>${esc(b.created)}</b></div>
+      ${d.wallet ? `<div class="kv"><span>API hamyon</span><b>${money(d.wallet.balance)} UZS · ${money(d.wallet.count)} ta emoji</b></div>` : ""}
+      <div class="acts">
+        <button class="btn main" id="b-tg">${b.enabled ? "⏸ To'xtatish" : "▶️ Yoqish"}</button>
+        <button class="btn" id="b-ms">✉️ Owner'ga xabar</button>
+        <button class="btn" id="b-e7">📅 +7 kun</button>
+        <button class="btn" id="b-e30">📅 +30 kun</button>
+        ${d.wallet ? '<button class="btn" id="b-wl" style="grid-column:1/3">💼 API hamyon</button>' : ""}
+      </div>
+      ${b.has_sub ? `<div class="muted" style="margin:14px 0 6px;font-size:12px">Tarifni o'zgartirish (pul yechilmaydi, muddat o'zgarmaydi)</div>
+      <div class="chips" id="b-pl">${d.plans.map(p => `<button class="chip${p.id === b.plan ? " on" : ""}" data-p="${p.id}">${p.emoji} ${esc(p.title)} · ${money(p.price)}</button>`).join("")}</div>` : ""}
+      <button class="btn danger" id="b-del" style="margin-top:8px">🗑 Botni o'chirish</button>
+      <button class="btn" onclick="closeSheet()" style="margin-top:8px">Yopish</button>`);
+    const after = async () => { await refreshBots(); await botSheet(id); };
+    $("b-ow").onclick = () => userSheet(b.owner, () => botSheet(id));
+    $("b-tg").onclick = e => run(e.target, async () => { const r = await post("/api/bot/toggle", { id }); if(r){ toast("✅ " + (r.message || "Bajarildi")); await after(); } });
+    const ext = days => e => ask(`Muddat +${days} kun uzaytirilsinmi? (Owner balansidan pul yechilmaydi)`, () => run(e.target, async () => {
+      const r = await post("/api/bot/extend", { id, days }); if(r){ toast("✅ Yangi muddat: " + r.expires); await after(); }
+    }));
+    $("b-e7").onclick = ext(7); $("b-e30").onclick = ext(30);
+    $("b-ms").onclick = () => textForm({ title: "Owner'ga xabar", sub: esc(name), path: "/api/bot/message", extra: { id }, back: () => botSheet(id) });
+    if($("b-wl")) $("b-wl").onclick = () => walletForm(id, name, d.wallet.balance, () => botSheet(id));
+    document.querySelectorAll("#b-pl .chip").forEach(c => c.onclick = () => {
+      if(c.dataset.p === b.plan) return;
+      ask(`Tarif ${c.textContent.trim()} ga o'zgartirilsinmi?`, async () => {
+        const r = await post("/api/bot/plan", { id, plan: c.dataset.p }); if(r){ toast("✅ Tarif o'zgartirildi"); await after(); }
+      });
+    });
+    $("b-del").onclick = e => ask(`${name} o'chirilsinmi?\n\nTo'langan pul QAYTARILMAYDI. Ma'lumot fayllari serverda qoladi.`, () => run(e.target, async () => {
+      const r = await post("/api/bot/delete", { id }); if(r){ toast("✅ O'chirildi"); closeSheet(); await refreshBots(); if(PAGE === "home") pageHome($("view"), token); }
+    }));
+  }catch(e){ sheet(`<div class="err">Yuklab bo'lmadi (${esc(e.message)})</div><button class="btn" onclick="closeSheet()" style="margin-top:12px">Yopish</button>`); }
+}
+function walletForm(id, name, bal, back){
+  moneyForm({
+    title: "API hamyon", sub: `${esc(name)} · hozir ${money(bal)} UZS`, path: "/api/bot/wallet", extra: { id }, back,
+    done: async () => { if(PAGE === "wallet") pageWallet($("view"), token); back(); },
+  });
+}
+
+/* ================= SHABLONLAR VA NARXLAR ================= */
+let TPL = null;
+async function pageTpl(v, my){
+  try{
+    const d = await getOk("/api/templates");
+    if(my !== token) return;
+    TPL = d;
+    const c = d.capacity;
+    v.innerHTML =
+      `<div class="box"><h3>🤖 Bot limiti</h3>` +
+      (c.max === null
+        ? `<div class="muted">Limit yo'q (cheksiz) · hozir ${c.used} ta bot</div>`
+        : `<div class="pills"><div class="pill"><b>${c.max}</b><span>limit</span></div><div class="pill"><b>${c.used}</b><span>band</span></div><div class="pill"><b>${c.free}</b><span>bo'sh</span></div></div>`) +
+      `<div class="acts"><button class="btn" id="cap-set">✏️ O'zgartirish</button>${c.max === null ? "" : '<button class="btn" id="cap-off">♾ Olib tashlash</button>'}</div></div>` +
+      d.items.map(t => `<div class="box"><h3>${esc(t.title)} <span class="muted" style="font-family:inherit;font-size:12px;font-weight:400">· ${t.bots} ta bot${t.ready ? "" : " · fayl yo'q"}</span></h3>` +
+        `<div class="${t.hidden ? "warn" : "ok"}" style="font-size:13px;margin-bottom:6px">${t.hidden ? "⏸ Vaqtincha sotuvdan olingan" : "🟢 Sotib olishga mavjud"}${t.limit === null ? "" : " · limit " + t.bots + "/" + t.limit}</div>` +
+        t.plans.map(p => `<div class="row tap" data-t="${esc(t.key)}" data-p="${esc(p.id)}"><div class="l"><div class="t">${p.emoji} ${esc(p.title)}</div><div class="s">${p.bots} ta bot${p.custom_lines ? " · matn o'zgartirilgan" : ""}</div></div><div class="r"><div class="a">${money(p.price)}</div><div class="s">UZS/oy ✏️</div></div></div>`).join("") +
+        `<div class="acts" style="grid-template-columns:1fr 1fr 1fr"><button class="btn" data-hd="${esc(t.key)}">${t.hidden ? "▶️ Ochish" : "⏸ Yopish"}</button><button class="btn" data-lm="${esc(t.key)}">🔢 Limit</button><button class="btn" data-ln="${esc(t.key)}">📝 Matn</button></div></div>`).join("");
+    $("cap-set").onclick = () => capForm(c);
+    if($("cap-off")) $("cap-off").onclick = e => ask("Bot limiti olib tashlansinmi?", () => run(e.target, async () => {
+      const r = await post("/api/capacity", { max: null }); if(r){ toast("✅ Limit olib tashlandi"); pageTpl(v, token); }
+    }));
+    v.querySelectorAll(".row[data-t]").forEach(r => r.onclick = () => priceForm(r.dataset.t, r.dataset.p));
+    v.querySelectorAll("[data-hd]").forEach(b => b.onclick = e => {
+      const t = TPL.items.find(x => x.key === b.dataset.hd);
+      ask(t.hidden ? t.title + " yana sotuvga chiqarilsinmi?" : t.title + " vaqtincha sotuvdan olinsinmi? (Mavjud botlar ishlashda davom etadi, yangi sotib olib bo'lmaydi)", () => run(e.target, async () => {
+        const r = await post("/api/template/hidden", { template: t.key, hidden: !t.hidden });
+        if(r){ toast(r.hidden ? "⏸ Sotuvdan olindi" : "✅ Sotuvga chiqdi"); pageTpl(v, token); }
+      }));
+    });
+    v.querySelectorAll("[data-lm]").forEach(b => b.onclick = () => tplLimitForm(b.dataset.lm));
+    v.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => tplLinesForm(b.dataset.ln, "starter"));
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function tplLimitForm(tk){
+  const t = TPL.items.find(x => x.key === tk);
+  sheet(`<h2>${esc(t.title)} — limit</h2><div class="muted">Shu shablondan nechta bot ochish mumkin. Hozir: ${t.bots} ta</div>
+    <input class="inp" id="tl-v" inputmode="numeric" placeholder="Masalan 3 (bo'sh = cheksiz)" value="${t.limit === null ? "" : t.limit}">
+    <div class="muted" style="font-size:12px;margin-bottom:10px">Umumiy bot limiti ham amal qiladi (tepada).</div>
+    <button class="btn main" id="tl-go">Saqlash</button><button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>`);
+  $("tl-go").onclick = e => run(e.target, async () => {
+    const raw = digits($("tl-v").value);
+    const r = await post("/api/template/limit", { template: tk, max: raw === "" ? null : parseInt(raw, 10) });
+    if(r){ toast("✅ Saqlandi"); closeSheet(); pageTpl($("view"), token); }
+  });
+}
+function tplLinesForm(tk, pid){
+  const t = TPL.items.find(x => x.key === tk), p = t.plans.find(x => x.id === pid);
+  sheet(`<h2>${esc(t.title)} — tarif matni</h2>
+    <div class="chips" id="tn-p" style="margin-top:8px">${t.plans.map(x => `<button class="chip${x.id === pid ? " on" : ""}" data-p="${x.id}">${x.emoji} ${esc(x.title)}</button>`).join("")}</div>
+    <div class="muted" style="font-size:12px">Har qator — bitta imkoniyat. Mijoz shablonni tanlaganda shu matnni ko'radi.</div>
+    <textarea class="inp" id="tn-v" style="min-height:200px"></textarea>
+    <button class="btn main" id="tn-go">Saqlash</button>
+    ${p.custom_lines ? '<button class="btn" id="tn-rs" style="margin-top:8px">↩️ Standart matnga qaytarish</button>' : ""}
+    <button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>`);
+  $("tn-v").value = p.lines.join("\n");
+  document.querySelectorAll("#tn-p .chip").forEach(c => c.onclick = () => tplLinesForm(tk, c.dataset.p));
+  const save = (text, e) => run(e.target, async () => {
+    const r = await post("/api/template/lines", { template: tk, plan: pid, text });
+    if(r){ toast("✅ Saqlandi"); closeSheet(); pageTpl($("view"), token); }
+  });
+  $("tn-go").onclick = e => { const text = $("tn-v").value.trim(); if(!text) return toast("Matn bo'sh bo'lmasin", true); save(text, e); };
+  if($("tn-rs")) $("tn-rs").onclick = e => ask("Standart matnga qaytarilsinmi?", () => save("", e));
+}
+function capForm(c){
+  sheet(`<h2>Bot limiti</h2><div class="muted">Nechta owner boti ochish mumkin. Hozir band: ${c.used} ta</div>
+    <input class="inp" id="cf-v" inputmode="numeric" placeholder="Masalan 5" value="${c.max === null ? "" : c.max}">
+    <button class="btn main" id="cf-go">Saqlash</button><button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>`);
+  $("cf-go").onclick = e => {
+    const raw = digits($("cf-v").value); if(raw === "") return toast("Raqam yozing", true);
+    run(e.target, async () => {
+      const r = await post("/api/capacity", { max: parseInt(raw, 10) });
+      if(r){ toast("✅ Saqlandi"); closeSheet(); pageTpl($("view"), token); }
+    });
+  };
+}
+function priceForm(tk, pid){
+  const t = TPL.items.find(x => x.key === tk), p = t.plans.find(x => x.id === pid);
+  sheet(`<h2>${esc(t.title)} — ${p.emoji} ${esc(p.title)}</h2>
+    <div class="muted">Hozirgi narx: ${money(p.price)} UZS/oy · ${p.bots} ta bot</div>
+    <input class="inp" id="pf-v" inputmode="numeric" placeholder="Yangi narx (UZS)" value="${p.price}">
+    <div class="muted" style="font-size:12px;margin-bottom:12px">${money(TPL.min_price)} dan ${money(TPL.max_price)} gacha. Tartib saqlanadi: Starter &lt; Pro &lt; VIP. Mavjud botlarning keyingi uzaytirishida ham yangi narx yechiladi.</div>
+    <button class="btn main" id="pf-go">Saqlash</button><button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>`);
+  $("pf-go").onclick = e => {
+    const n = parseInt(digits($("pf-v").value), 10);
+    if(!n) return toast("Narxni yozing", true);
+    ask(`${t.title} — ${p.title}: ${money(p.price)} → ${money(n)} UZS/oy.\n${p.bots} ta botga ta'sir qiladi. Tasdiqlaysizmi?`, () => run(e.target, async () => {
+      const r = await post("/api/prices", { template: tk, plan: pid, price: n });
+      if(r){ toast("✅ Narx o'zgartirildi"); closeSheet(); pageTpl($("view"), token); }
+    }));
+  };
+}
+
+/* ================= SOZLAMALAR ================= */
+let SET = null, setTab = "texts", CH = null, PR = null;
+const SETTABS = { texts:"📝 Matnlar", colors:"🎨 Ranglar", chan:"📢 Kanallar", promo:"🎟 Promo", ref:"🎁 Referal", adm:"👑 Adminlar" };
+const SCOPE = { both:"Hisob + bot", topup:"Faqat hisob to'ldirish", bot:"Faqat bot sotib olish" };
+const PST = { active:["🟢","faol","ok"], expired:["⌛","muddati tugagan","warn"], used_up:["🔴","ishlatib bo'lingan","bad"], off:["⚫","o'chiq","warn"] };
+const STYLE_ICON = { none:"⚪ Oddiy", primary:"🔵 Ko'k", success:"🟢 Yashil", danger:"🔴 Qizil" };
+async function pageSets(v, my){
+  try{
+    if(setTab === "adm") setTab = "texts";
+    let body = "";
+    if(setTab === "chan"){ CH = await getOk("/api/channels"); }
+    else if(setTab === "promo"){ PR = await getOk("/api/promos"); }
+    else { SET = await getOk("/api/settings"); }
+    if(my !== token) return;
+    v.innerHTML = '<div class="chips" id="stabs">' + Object.keys(SETTABS).map(k => '<button class="chip' + (k === setTab ? ' on' : '') + '" data-k="' + k + '">' + SETTABS[k] + '</button>').join("") + '</div><div id="sbody"></div>';
+    v.querySelectorAll("#stabs .chip").forEach(c => c.onclick = () => { if(c.dataset.k === "adm") return go("admins"); setTab = c.dataset.k; go("sets"); });
+    ({ texts:drawTexts, colors:drawColors, chan:drawChan, promo:drawPromo, ref:drawRef })[setTab]($("sbody"));
+  }catch(e){ if(my === token) fail(v, e); }
+}
+function reloadSets(){ if(PAGE === "sets") pageSets($("view"), token); }
+
+/* --- matnlar --- */
+function drawTexts(b){
+  b.innerHTML = '<div class="muted" style="font-size:12px;margin:0 2px 10px">Botdagi matnlarni shu yerdan o\'zgartiring. Saqlangach bot darrov yangi matnni ishlatadi.</div><div class="box" style="padding:4px 14px">' +
+    SET.texts.map(t => '<div class="row tap" data-k="' + esc(t.key) + '"><div class="l"><div class="t">' + esc(t.title) + (t.custom ? ' <span class="ok" style="font-weight:400;font-size:12px">· o\'zgartirilgan</span>' : '') + '</div>' +
+      '<div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px">' + esc(t.value.replace(/\n/g, " ")) + '</div></div><div class="r">✏️</div></div>').join("") + '</div>';
+  b.querySelectorAll(".row[data-k]").forEach(r => r.onclick = () => textEdit(r.dataset.k));
+}
+function textEdit(key){
+  const t = SET.texts.find(x => x.key === key);
+  sheet('<h2>' + esc(t.title) + '</h2><div class="muted" style="font-size:12px">' + esc(t.hint) + '</div>' +
+    '<textarea class="inp" id="te-v" maxlength="4000"></textarea>' +
+    '<button class="btn main" id="te-go">Saqlash</button>' +
+    (t.custom ? '<button class="btn" id="te-rs" style="margin-top:8px">↩️ Standart matnga qaytarish</button>' : '') +
+    '<button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>');
+  $("te-v").value = t.value;
+  const save = (val, e) => run(e.target, async () => {
+    const r = await post("/api/settings/text", { key, value: val });
+    if(r){ toast("✅ Saqlandi"); closeSheet(); reloadSets(); }
+  });
+  $("te-go").onclick = e => { const val = $("te-v").value.trim(); if(!val) return toast("Matn bo'sh bo'lmasin", true); save(val, e); };
+  if($("te-rs")) $("te-rs").onclick = e => ask("Standart matnga qaytarilsinmi?", () => save("", e));
+}
+
+/* --- tugma ranglari --- */
+function drawColors(b){
+  b.innerHTML = '<div class="muted" style="font-size:12px;margin:0 2px 10px">Botdagi tugmalar rangini tanlang (Telegram ranglarni yangi versiyalarda ko\'rsatadi).</div><div class="box" style="padding:4px 14px">' +
+    SET.colors.map(c => '<div class="row tap" data-k="' + esc(c.key) + '"><div class="l"><div class="t">' + esc(c.title) + '</div></div><div class="r">' + (STYLE_ICON[c.style] || c.style) + '</div></div>').join("") + '</div>';
+  b.querySelectorAll(".row[data-k]").forEach(r => r.onclick = () => colorEdit(r.dataset.k));
+}
+function colorEdit(key){
+  const c = SET.colors.find(x => x.key === key);
+  sheet('<h2>' + esc(c.title) + '</h2><div class="muted">Tugma rangini tanlang</div><div class="chips" style="margin-top:12px;flex-wrap:wrap" id="ce">' +
+    Object.keys(STYLE_ICON).map(k => '<button class="chip' + (k === c.style ? ' on' : '') + '" data-k="' + k + '">' + STYLE_ICON[k] + '</button>').join("") + '</div>' +
+    '<button class="btn" onclick="closeSheet()" style="margin-top:8px">Yopish</button>');
+  document.querySelectorAll("#ce .chip").forEach(b => b.onclick = async () => {
+    const r = await post("/api/settings/color", { key, style: b.dataset.k });
+    if(r){ toast("✅ Saqlandi"); closeSheet(); reloadSets(); }
+  });
+}
+
+/* --- majburiy kanallar --- */
+function drawChan(b){
+  b.innerHTML = '<div class="muted" style="font-size:12px;margin:0 2px 10px">Foydalanuvchi shu kanallarga a\'zo bo\'lmaguncha botdan foydalana olmaydi. Bot kanalda ADMIN bo\'lishi shart. Adminlar tekshirilmaydi.</div>' +
+    '<button class="btn main" id="ch-add" style="margin-bottom:12px">➕ Kanal qo\'shish</button>' +
+    (CH.items.length ? '<div class="box" style="padding:4px 14px">' + CH.items.map(c =>
+      '<div class="row tap" data-c="' + esc(c.chat) + '"><div class="l"><div class="t">' + esc(c.title) + '</div><div class="s">' + (c.members !== null ? money(c.members) + ' a\'zo · ' : '') +
+      (c.bot_admin ? '<span class="ok">bot admin ✅</span>' : '<span class="bad">bot admin emas ⚠️</span>') + '</div></div><div class="r">🗑</div></div>').join("") + '</div>'
+      : '<div class="center">Majburiy kanal yo\'q</div>');
+  $("ch-add").onclick = chanAdd;
+  b.querySelectorAll(".row[data-c]").forEach(r => r.onclick = () => {
+    const c = CH.items.find(x => String(x.chat) === r.dataset.c);
+    ask("«" + c.title + "» majburiy obunadan olib tashlansinmi?", async () => {
+      const x = await post("/api/channels/remove", { chat: c.chat });
+      if(x){ toast("✅ Olib tashlandi"); reloadSets(); }
+    });
+  });
+}
+function chanAdd(){
+  sheet('<h2>Kanal qo\'shish</h2><div class="muted" style="font-size:12px">Avval botni kanalga ADMIN qiling. Ochiq kanal: @username. Yopiq kanal: ID (-100...) va pastga taklif havolasi.</div>' +
+    '<input class="inp" id="ca-c" placeholder="@kanal_username yoki -100123..." autocomplete="off">' +
+    '<input class="inp" id="ca-l" placeholder="Taklif havolasi (faqat yopiq kanal uchun)" autocomplete="off">' +
+    '<button class="btn main" id="ca-go">Qo\'shish</button><button class="btn" onclick="closeSheet()" style="margin-top:8px">Bekor</button>');
+  $("ca-go").onclick = e => {
+    const chat = $("ca-c").value.trim(); if(!chat) return toast("Kanalni yozing", true);
+    run(e.target, async () => {
+      const r = await post("/api/channels/add", { chat, link: $("ca-l").value.trim() });
+      if(r){ toast("✅ Qo'shildi: " + r.title); closeSheet(); reloadSets(); }
+    });
+  };
+}
+
+/* --- promo-kodlar --- */
+function dur(sec){
+  if(sec == null) return "—";
+  if(sec < 60) return sec + " soniya";
+  if(sec < 3600) return Math.round(sec / 60) + " daqiqa";
+  if(sec < 86400) return Math.round(sec / 360) / 10 + " soat";
+  return Math.round(sec / 8640) / 10 + " kun";
+}
+function promoStats(){
+  const s = PR.summary; if(!s || !s.uses) return "";
+  const tot = s.topup + s.bot, pt = Math.round(s.topup * 100 / tot), pb = 100 - pt;
+  const lead = s.topup === s.bot ? "Teng" : s.topup > s.bot ? "Hisob to'ldirishda ko'proq" : "Bot sotib olishda ko'proq";
+  return '<div class="box"><h3>Statistika</h3><div class="pills">' +
+    '<div class="pill"><b>' + s.used_codes + ' / ' + s.codes + '</b><span>kod ishlatilgan</span></div>' +
+    '<div class="pill"><b>' + s.uses + '</b><span>marta ishlatilgan</span></div>' +
+    '<div class="pill"><b>' + money(s.saved) + '</b><span>bot narxidan tushgan</span></div></div>' +
+    '<div class="muted" style="font-size:12px;margin:10px 0 4px">Qayerda ko\'proq ishlatilgan — ' + lead + '</div>' +
+    '<div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line)"><div style="width:' + pt + '%;background:var(--cream)"></div><div style="width:' + pb + '%;background:var(--dim)"></div></div>' +
+    '<div class="kv"><span>🟡 Hisob to\'ldirish</span><b>' + s.topup + ' marta (' + pt + '%)</b></div>' +
+    '<div class="kv"><span>⚪ Bot sotib olish</span><b>' + s.bot + ' marta (' + pb + '%)</b></div>' +
+    (s.fastest.length ? '<div class="muted" style="font-size:12px;margin:10px 0 2px">Eng tez ishlatilgan (yaratilgandan keyin)</div>' + s.fastest.map((f, i) => '<div class="kv"><span>' + (i + 1) + '. ' + esc(f.code) + '</span><b>' + dur(f.after) + '</b></div>').join("") : "") +
+    '</div>';
+}
+function drawPromo(b){
+  b.innerHTML = '<div class="muted" style="font-size:12px;margin:0 2px 10px">Foizli chegirma. Hisob to\'ldirishda foiz kam to\'lanadi, bot sotib olishda narxdan tushadi. Bir odam bitta kodni ko\'pi bilan ' + PR.max_per_user + ' marta ishlatadi.</div>' +
+    promoStats() +
+    '<button class="btn main" id="pr-new" style="margin-bottom:12px">➕ Yangi promo-kod</button>' +
+    (PR.items.length ? '<div class="box" style="padding:4px 14px">' + PR.items.map(c => {
+      const st = PST[c.status] || ["⚪", c.status, ""];
+      return '<div class="row tap" data-c="' + esc(c.code) + '"><div class="l"><div class="t">' + st[0] + ' ' + esc(c.code) + ' <span class="muted" style="font-weight:400">-' + c.percent + '%</span></div>' +
+        '<div class="s">' + st[1] + ' · ' + SCOPE[c.scope] + (c.uses ? ' · 🟡' + c.n_topup + ' ⚪' + c.n_bot : '') + (c.first_after != null ? ' · ' + dur(c.first_after) + 'da' : '') + '</div></div><div class="r"><div class="a">' + c.uses + (c.max_total ? ' / ' + c.max_total : '') + '</div><div class="s">ishlatilgan</div></div></div>';
+    }).join("") + '</div>' : '<div class="center">Promo-kod yo\'q</div>');
+  $("pr-new").onclick = () => promoForm(null);
+  b.querySelectorAll(".row[data-c]").forEach(r => r.onclick = () => promoSheet(r.dataset.c));
+}
+async function promoSheet(code){
+  sheet('<div class="center">Yuklanmoqda…</div>');
+  try{
+    const d = await getOk("/api/promo?code=" + encodeURIComponent(code)), c = d.promo, st = PST[c.status] || ["⚪", c.status, ""];
+    sheet('<h2>' + esc(c.code) + ' <span class="muted" style="font-size:15px">-' + c.percent + '%</span></h2><div class="' + st[2] + '" style="margin-bottom:6px">' + st[0] + ' ' + st[1] + '</div>' +
+      '<div class="kv"><span>Tur</span><b>' + SCOPE[c.scope] + '</b></div>' +
+      '<div class="kv"><span>Bir odam uchun</span><b>' + c.per_user + ' marta</b></div>' +
+      '<div class="kv"><span>Muddat</span><b>' + (c.expires ? esc(c.expires) + " gacha" : "cheksiz") + '</b></div>' +
+      '<div class="kv"><span>Umumiy limit</span><b>' + (c.max_total ? c.uses + " / " + c.max_total : "yo'q") + '</b></div>' +
+      '<div class="kv"><span>Ishlatilgan</span><b>' + c.uses + ' marta · ' + c.users + ' odam</b></div>' +
+      '<div class="kv"><span>Hisob to\'ldirish / bot</span><b>' + c.n_topup + ' / ' + c.n_bot + '</b></div>' +
+      '<div class="kv"><span>Birinchi ishlatilgan</span><b>' + (c.first_after != null ? dur(c.first_after) + ' dan keyin' : 'hali yo\'q') + '</b></div>' +
+      '<div class="kv"><span>Bot narxidan tushgan</span><b>' + money(c.saved) + ' UZS</b></div>' +
+      '<div class="kv"><span>Hisob to\'ldirish</span><b>' + money(c.topup_paid) + ' to\'landi → ' + money(c.topup_credit) + ' tushdi</b></div>' +
+      '<div class="kv"><span>Yaratilgan</span><b>' + esc(c.created) + '</b></div>' +
+      '<div class="sec" style="font-size:15px;margin:14px 2px 4px">Kim ishlatgan</div>' +
+      (d.uses.length ? d.uses.map(u => '<div class="row tap" data-u="' + esc(u.user_id) + '"><div class="l"><div class="t">' + esc(u.name || ("ID " + u.user_id)) + (u.username ? ' ' + uname(u.username) : '') + '</div>' +
+        '<div class="s">' + esc(u.time) + ' · ' + (u.kind === "bot" ? "bot sotib olish" : "hisob to'ldirish") + '</div></div><div class="r"><div class="a">' + money(u.after) + '</div><div class="s">dan ' + money(u.before) + '</div></div></div>').join("") : '<div class="muted" style="padding:6px 0">Hali ishlatilmagan</div>') +
+      '<div class="acts"><button class="btn main" id="pr-ed">✏️ Tahrirlash</button><button class="btn danger" id="pr-del">🗑 O\'chirish</button></div>' +
+      '<button class="btn" onclick="closeSheet()" style="margin-top:6px">Yopish</button>');
+    $("pr-ed").onclick = () => promoForm(c);
+    $("pr-del").onclick = e => ask("«" + c.code + "» o'chirilsinmi?", () => run(e.target, async () => {
+      const r = await post("/api/promo/delete", { code: c.code });
+      if(r){ toast("✅ O'chirildi"); closeSheet(); reloadSets(); }
+    }));
+    document.querySelectorAll("#sheet .row[data-u]").forEach(r => r.onclick = () => userSheet(r.dataset.u, () => promoSheet(code)));
+  }catch(e){ sheet('<div class="err">Yuklab bo\'lmadi (' + esc(e.message) + ')</div><button class="btn" onclick="closeSheet()" style="margin-top:12px">Yopish</button>'); }
+}
+function promoForm(c){
+  const f = { per_user: c ? c.per_user : 1, scope: c ? c.scope : "both" };
+  sheet('<h2>' + (c ? "Promo-kodni tahrirlash" : "Yangi promo-kod") + '</h2>' +
+    '<input class="inp" id="pf-c" placeholder="Kod (lotincha harf/raqam), masalan YANGI10" maxlength="20" autocomplete="off" value="' + (c ? esc(c.code) : "") + '">' +
+    '<input class="inp" id="pf-p" inputmode="numeric" placeholder="Chegirma foizi (1-' + PR.max_percent + ')" value="' + (c ? c.percent : "") + '">' +
+    '<div class="muted" style="font-size:12px">Bir odam necha marta ishlata oladi</div><div class="chips" id="pf-u" style="margin-top:6px"><button class="chip" data-v="1">1 marta</button><button class="chip" data-v="2">2 marta</button></div>' +
+    '<div class="muted" style="font-size:12px">Qayerda ishlaydi</div><div class="chips" id="pf-s" style="margin-top:6px">' + Object.keys(SCOPE).map(k => '<button class="chip" data-v="' + k + '">' + SCOPE[k] + '</button>').join("") + '</div>' +
+    '<input class="inp" id="pf-e" inputmode="numeric" maxlength="8" placeholder="Muddat KK.OO.YY (bo\'sh = cheksiz)" value="' + (c ? esc(c.expires) : "") + '">' +
+    '<input class="inp" id="pf-m" inputmode="numeric" placeholder="Umumiy limit — jami necha marta (bo\'sh = cheksiz)" value="' + (c && c.max_total ? c.max_total : "") + '">' +
+    '<label class="chk"><input type="checkbox" id="pf-a" ' + (!c || c.active ? "checked" : "") + '> Faol</label>' +
+    '<button class="btn main" id="pf-go">Saqlash</button><button class="btn" id="pf-bk" style="margin-top:8px">Bekor</button>');
+  const mark = () => {
+    document.querySelectorAll("#pf-u .chip").forEach(b => b.classList.toggle("on", +b.dataset.v === f.per_user));
+    document.querySelectorAll("#pf-s .chip").forEach(b => b.classList.toggle("on", b.dataset.v === f.scope));
+  };
+  mark();
+  document.querySelectorAll("#pf-u .chip").forEach(b => b.onclick = () => { f.per_user = +b.dataset.v; mark(); });
+  document.querySelectorAll("#pf-s .chip").forEach(b => b.onclick = () => { f.scope = b.dataset.v; mark(); });
+  $("pf-e").oninput = e => { e.target.value = fmtDay(e.target.value); };
+  $("pf-bk").onclick = () => c ? promoSheet(c.code) : closeSheet();
+  $("pf-go").onclick = e => {
+    const code = $("pf-c").value.trim(), percent = parseInt(digits($("pf-p").value), 10);
+    if(!code) return toast("Kodni yozing", true);
+    if(!percent) return toast("Foizni yozing", true);
+    run(e.target, async () => {
+      const r = await post("/api/promo/save", { code, percent, per_user: f.per_user, scope: f.scope, expires: $("pf-e").value.trim(),
+        max_total: digits($("pf-m").value), active: $("pf-a").checked, original: c ? c.code : "" });
+      if(r){ toast("✅ Saqlandi"); closeSheet(); reloadSets(); }
+    });
+  };
+}
+
+/* --- referal --- */
+function drawRef(b){
+  const r = SET.referral, s = r.stats; let when = r.when;
+  b.innerHTML = '<div class="box"><h3>Statistika</h3><div class="pills">' +
+      '<div class="pill"><b>' + s.invited + '</b><span>taklif qilingan</span></div><div class="pill"><b>' + s.bought + '</b><span>bot olgan</span></div><div class="pill"><b>' + s.topped + '</b><span>hisob to\'ldirgan</span></div></div>' +
+      '<div class="kv"><span>Bonus berilgan</span><b>' + money(s.earned) + ' UZS</b></div>' +
+      '<button class="btn" id="rf-list" style="margin-top:10px">👥 Hammasini ko\'rish</button></div>' +
+    '<div class="box"><h3>Sozlama</h3>' +
+      '<label class="chk"><input type="checkbox" id="rf-on" ' + (r.enabled ? "checked" : "") + '> Referal bonusi yoqilgan</label>' +
+      '<div class="muted" style="font-size:12px">Bonus summasi (UZS) — taklif qilgan odamning hisobiga tushadi</div>' +
+      '<input class="inp" id="rf-b" inputmode="numeric" value="' + r.bonus + '">' +
+      '<div class="muted" style="font-size:12px">Bonus qachon beriladi</div>' +
+      '<div class="chips" id="rf-w" style="margin-top:6px"><button class="chip" data-v="first">Do\'sti 1-botni sotib olganda</button><button class="chip" data-v="every">Har yangi bot sotib olganda</button></div>' +
+      '<button class="btn main" id="rf-go" style="margin-top:6px">Saqlash</button></div>' +
+    (s.top.length ? '<div class="sec">Eng ko\'p taklif qilganlar</div><div class="box" style="padding:4px 14px">' + s.top.map(t =>
+      '<div class="row tap" data-u="' + esc(t.id) + '"><div class="l"><div class="t">' + esc(t.name || ("ID " + t.id)) + (t.username ? ' ' + uname(t.username) : '') + '</div><div class="s">bonus: ' + money(t.earned) + ' UZS</div></div><div class="r"><div class="a">' + t.count + '</div></div></div>').join("") + '</div>' : '');
+  const mark = () => document.querySelectorAll("#rf-w .chip").forEach(c => c.classList.toggle("on", c.dataset.v === when));
+  mark();
+  document.querySelectorAll("#rf-w .chip").forEach(c => c.onclick = () => { when = c.dataset.v; mark(); });
+  $("rf-go").onclick = e => run(e.target, async () => {
+    const res = await post("/api/referral", { enabled: $("rf-on").checked, bonus: parseInt(digits($("rf-b").value) || "0", 10), when });
+    if(res){ toast("✅ Saqlandi"); reloadSets(); }
+  });
+  b.querySelectorAll(".row[data-u]").forEach(x => x.onclick = () => userSheet(x.dataset.u));
+  $("rf-list").onclick = () => refList("", closeSheet);
+}
+async function refList(owner, back){
+  sheet('<div class="center">Yuklanmoqda…</div>');
+  try{
+    const d = await getOk("/api/referrals" + (owner ? "?owner=" + encodeURIComponent(owner) : ""));
+    sheet('<h2>' + (owner && d.owner ? esc(d.owner.name || ("ID " + owner)) + " taklif qilganlar" : "Taklif qilinganlar") + '</h2>' +
+      '<div class="pills"><div class="pill"><b>' + d.total + '</b><span>jami</span></div><div class="pill"><b>' + d.bought + '</b><span>🤖 bot olgan</span></div><div class="pill"><b>' + d.topped + '</b><span>💳 to\'ldirgan</span></div></div>' +
+      (d.items.length ? d.items.map(u => '<div class="row tap" data-u="' + esc(u.id) + '"><div class="l"><div class="t">' + esc(u.name || ("ID " + u.id)) + (u.username ? ' ' + uname(u.username) : '') + '</div>' +
+        '<div class="s">' + esc(u.registered) + (u.by_who ? ' · taklif: ' + esc(u.by_who.name || ("ID " + u.by)) : '') + '</div></div>' +
+        '<div class="r"><div class="a">' + (u.bought ? '🤖' : '') + (u.topped ? '💳' : '') + (u.bought || u.topped ? '' : '—') + '</div></div></div>').join("") : '<div class="muted" style="padding:8px 0">Hali hech kim yo\'q</div>') +
+      '<button class="btn" id="rl-bk" style="margin-top:12px">' + (back ? "Orqaga" : "Yopish") + '</button>');
+    $("rl-bk").onclick = back || closeSheet;
+    document.querySelectorAll("#sheet .row[data-u]").forEach(r => r.onclick = () => userSheet(r.dataset.u, () => refList(owner, back)));
+  }catch(e){ sheet('<div class="err">Yuklab bo\'lmadi (' + esc(e.message) + ')</div><button class="btn" onclick="closeSheet()" style="margin-top:12px">Yopish</button>'); }
+}
+
+/* ================= API HAMYON ================= */
+async function pageWallet(v, my){
+  try{
+    const d = await getOk("/api/wallets");
+    if(my !== token) return;
+    v.innerHTML =
+      `<div class="hero" style="padding:16px"><small>Hamyonlardagi jami</small><div class="big" style="font-size:30px">${money(d.total)} <span style="font-size:14px">UZS</span></div><div class="sub">1 ta emoji = ${money(d.emoji_price)} UZS · ${d.items.length} ta Emoji bot</div></div>` +
+      (d.items.length ? `<div class="box" style="padding:4px 14px">` + d.items.map(w => `<div class="row tap" data-b="${esc(w.id)}" data-n="${esc(w.username ? "@" + w.username : "bot " + w.id)}" data-v="${w.balance}"><div class="l"><div class="t">${w.username ? "@" + esc(w.username) : "bot " + esc(w.id)}</div><div class="s">${esc(w.owner_name || w.owner)} · ${money(w.count)} ta emoji</div></div><div class="r"><div class="a">${money(w.balance)}</div><div class="s">UZS ✏️</div></div></div>`).join("") + `</div>` : '<div class="center">Emoji bot yo\'q</div>');
+    v.querySelectorAll(".row[data-b]").forEach(r => r.onclick = () => walletForm(r.dataset.b, r.dataset.n, +r.dataset.v, closeSheet));
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+/* ================= XABAR YUBORISH ================= */
+let bcAud = "all", bcTimer = null;
+function stopBcPoll(){ clearInterval(bcTimer); bcTimer = null; }
+async function pageBc(v, my){
+  v.innerHTML = `<div class="box"><h3>Kimga yuboramiz?</h3>
+      <div class="chips"><button class="chip on" data-a="all">👥 Hamma foydalanuvchi</button><button class="chip" data-a="owners">🤖 Faqat owner'lar</button></div>
+      <textarea class="inp" id="bc-t" maxlength="4000" placeholder="Xabar matni…"></textarea>
+      <div class="cnt" id="bc-c">0 / 4000</div>
+      <button class="btn main" id="bc-go">📣 Yuborish</button></div>
+      <div id="bc-st"></div>
+      <div class="box"><h3>🔔 Mini-app yangiligi</h3>
+        <div class="muted" style="font-size:12px">Hamma foydalanuvchining mini-app'idagi 🔔 ga tushadi (Telegram xabari emas).</div>
+        <input class="inp" id="nt-h" maxlength="120" value="#update" placeholder="Sarlavha">
+        <textarea class="inp" id="nt-t" maxlength="4000" style="min-height:100px" placeholder="Yangilik matni…"></textarea>
+        <button class="btn main" id="nt-go">🔔 E'lon qilish</button></div>`;
+  bcAud = "all";
+  $("nt-go").onclick = e => {
+    const t = $("nt-t").value.trim();
+    if(!t) return toast("Matnni yozing", true);
+    ask("Yangilik hamma foydalanuvchining 🔔 iga tushadi. Yuborilsinmi?", () => run(e.target, async () => {
+      const r = await post("/api/notif/add", { title: $("nt-h").value.trim(), text: t });
+      if(r){ toast("✅ E'lon qilindi"); $("nt-t").value = ""; }
+    }));
+  };
+  v.querySelectorAll(".chip").forEach(c => c.onclick = () => { bcAud = c.dataset.a; v.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === c)); });
+  $("bc-t").oninput = e => $("bc-c").textContent = e.target.value.length + " / 4000";
+  $("bc-go").onclick = e => {
+    const t = $("bc-t").value.trim();
+    if(!t) return toast("Matnni yozing", true);
+    ask(`Xabar ${bcAud === "owners" ? "barcha owner'larga" : "HAMMA foydalanuvchilarga"} yuborilsinmi? Qaytarib bo'lmaydi.`, () => run(e.target, async () => {
+      const r = await post("/api/broadcast", { text: t, audience: bcAud });
+      if(r){ toast(`✅ Boshlandi: ${r.total} kishi`); $("bc-t").value = ""; $("bc-c").textContent = "0 / 4000"; startBcPoll(my); }
+    }));
+  };
+  try{ const s = await getOk("/api/broadcast/status"); if(my === token && s.total) drawBc(s); if(s.running) startBcPoll(my); }catch(e){}
+}
+function drawBc(s){
+  const el = $("bc-st"); if(!el) return;
+  const done = s.sent + s.fail, pct = s.total ? Math.round(done / s.total * 100) : 0;
+  el.innerHTML = `<div class="box"><h3>${s.running ? "⏳ Yuborilmoqda…" : "✅ Oxirgi yuborish tugadi"}</h3>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="pills"><div class="pill"><b>${s.sent}</b><span>yetdi</span></div><div class="pill"><b>${s.fail}</b><span>yetmadi</span></div><div class="pill"><b>${s.total}</b><span>jami</span></div></div></div>`;
+}
+function startBcPoll(my){
+  stopBcPoll();
+  const tick = async () => {
+    if(my !== token){ stopBcPoll(); return; }
+    try{ const s = await getOk("/api/broadcast/status"); drawBc(s); if(!s.running) stopBcPoll(); }catch(e){}
+  };
+  tick(); bcTimer = setInterval(tick, 2000);
+}
+
+
+/* ================= FONLAR (sotiladigan) ================= */
+function readImg(file){
+  return new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); ok(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); no(new Error("Rasm o'qilmadi")); };
+    im.src = url;
+  });
+}
+async function pageBgs(v, my){
+  try{
+    const d = await getOk("/api/bg/list");
+    if(my !== token) return;
+    const W = d.size.w, H = d.size.h;
+    v.innerHTML =
+      `<div class="box"><h3>➕ Yangi fon qo'shish</h3>
+        <div class="warnbox" style="color:var(--cream);border-color:var(--line);background:var(--soft)">Kerakli o'lcham: <b>${W}×${H}</b> (JPG yoki PNG). Boshqa o'lchamni bot qabul qilmaydi.</div>
+        <input class="inp" id="bg-n" maxlength="40" placeholder="Fon nomi (masalan: Tun osmoni)">
+        <input class="inp" id="bg-p" inputmode="numeric" placeholder="Narxi, UZS (0 = bepul)">
+        <input class="inp" id="bg-f" type="file" accept="image/jpeg,image/png">
+        <button class="btn main" id="bg-go">⬆️ Yuklash</button></div>
+      <div class="sec">Fonlar (${d.items.length})</div>` +
+      (d.items.length ? d.items.map(i =>
+        `<div class="box"><img src="${API + esc(i.url)}" style="width:100%;aspect-ratio:${W}/${H};object-fit:cover;border-radius:12px;display:block;margin-bottom:10px;${i.hidden ? "opacity:.45" : ""}">
+          <div class="row" style="padding:0 0 8px"><div class="l"><div class="t">${esc(i.title)}${i.hidden ? " · yashirin" : ""}</div><div class="s">${i.date} · sotilgan: ${i.sold} ta</div></div><div class="r"><div class="a">${money(i.price)}</div><div class="s">UZS</div></div></div>
+          <div class="acts"><button class="btn" data-a="price" data-id="${esc(i.id)}" data-p="${i.price}" data-t="${esc(i.title)}">✏️ Narx/nom</button>
+          <button class="btn" data-a="hide" data-id="${esc(i.id)}" data-h="${i.hidden ? 0 : 1}">${i.hidden ? "👁 Ko'rsatish" : "🙈 Yashirish"}</button></div>
+          <button class="btn danger" data-a="del" data-id="${esc(i.id)}">🗑 O'chirish</button></div>`).join("")
+        : '<div class="center">Hozircha fon yo\'q</div>');
+
+    $("bg-go").onclick = e => run(e.target, async () => {
+      const title = $("bg-n").value.trim(), price = digits($("bg-p").value), f = $("bg-f").files[0];
+      if(!title) return toast("Fon nomini yozing", true);
+      if(price === "") return toast("Narxni yozing (bepul bo'lsa 0)", true);
+      if(!f) return toast("Rasmni tanlang", true);
+      let im; try{ im = await readImg(f); }catch(err){ return toast(err.message, true); }
+      if(im.naturalWidth !== W || im.naturalHeight !== H)
+        return toast(`O'lcham ${im.naturalWidth}×${im.naturalHeight}. Kerakli: ${W}×${H}`, true);
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      c.getContext("2d").drawImage(im, 0, 0);
+      let q = 0.9, url = c.toDataURL("image/jpeg", q);
+      while(url.length * 0.75 > 850000 && q > 0.45){ q -= 0.1; url = c.toDataURL("image/jpeg", q); }
+      const r = await post("/api/bg/add", { title, price: +price, image: url });
+      if(r){ toast("✅ Fon qo'shildi"); go("bgs"); }
+    });
+    v.querySelectorAll("[data-a]").forEach(b => b.onclick = () => {
+      const id = b.dataset.id, a = b.dataset.a;
+      if(a === "hide") return run(b, async () => { if(await post("/api/bg/hide", { id, hidden: b.dataset.h === "1" })) go("bgs"); });
+      if(a === "del") return ask("Fon o'chirilsinmi?", async () => { if(await post("/api/bg/delete", { id })) go("bgs"); });
+      sheet(`<h2>Narx va nom</h2><input class="inp" id="e-n" maxlength="40" value="${b.dataset.t}">
+        <input class="inp" id="e-p" inputmode="numeric" value="${b.dataset.p}">
+        <button class="btn main pbtn" id="e-go">Saqlash</button>`);
+      $("e-go").onclick = e => run(e.target, async () => {
+        const p = digits($("e-p").value);
+        if(p === "") return toast("Narxni yozing", true);
+        if(await post("/api/bg/price", { id, price: +p, title: $("e-n").value.trim() })){ toast("✅ Saqlandi"); go("bgs"); }
+      });
+    });
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+/* ================= ADMINLAR ================= */
+async function pageAdmins(v, my){
+  try{
+    const d = await getOk("/api/admins");
+    if(my !== token) return;
+    const line = (u, tag, del) => `<div class="row"><div class="l"><div class="t">${esc(u.name || "Ismsiz")} ${u.username ? '<span class="muted" style="font-weight:400">@' + esc(u.username) + "</span>" : ""}</div><div class="s">ID ${esc(u.id)} · ${tag}</div></div>${del ? `<div class="r"><button class="chip" data-del="${esc(u.id)}">➖ Olib tashlash</button></div>` : ""}</div>`;
+    v.innerHTML =
+      `<div class="box"><h3>Adminlar</h3>${line(d.owner, "👑 ega", false)}${d.env.map(u => line(u, "asosiy admin (.env)", false)).join("")}${d.extra.map(u => line(u, "qo'shilgan", d.can_edit)).join("")}</div>` +
+      (d.can_edit
+        ? `<div class="box"><h3>➕ Admin qo'shish</h3><div class="muted" style="font-size:12px">ID yoki @username. U avval botga /start bosgan bo'lishi kerak.</div>
+           <input class="inp" id="ad-q" placeholder="ID yoki @username" autocomplete="off"><button class="btn main" id="ad-go">Qo'shish</button></div>`
+        : `<div class="muted" style="font-size:12px;text-align:center">Adminlarni faqat ega o'zgartira oladi.</div>`);
+    if(d.can_edit){
+      $("ad-go").onclick = e => {
+        const q = $("ad-q").value.trim(); if(!q) return toast("ID yoki @username yozing", true);
+        ask(`${q} admin qilinsinmi?`, () => run(e.target, async () => {
+          const r = await post("/api/admins/add", { q }); if(r){ toast("✅ Admin qo'shildi"); pageAdmins(v, token); }
+        }));
+      };
+      v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => ask("Adminlikdan olib tashlansinmi?", async () => {
+        const r = await post("/api/admins/remove", { id: +b.dataset.del }); if(r){ toast("✅ Olib tashlandi"); pageAdmins(v, token); }
+      }));
+    }
+  }catch(e){ if(my === token) fail(v, e); }
+}
+
+boot();
+</script>
+</body>
+</html>
