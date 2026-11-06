@@ -86,7 +86,7 @@
   .stats span{font-size:12px;color:var(--dim)}
 
   /* tezkor tugmalar */
-  .quick{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:16px}
+  .quick{display:flex;gap:10px;margin-bottom:16px}
   .quick button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--cream)}
   .tile{position:relative;width:62px;height:62px;border-radius:19px;background:var(--deep);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--cream)}
   .tile .ico{width:26px;height:26px}
@@ -284,6 +284,13 @@
   .pills3 div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 4px;text-align:center}
   .pills3 b{display:block;font-family:var(--serif);font-size:20px}
   .pills3 span{font-size:11px;color:var(--dim)}
+
+  /* QOTIRISH: sahifa yonga siljimaydi, faqat .hs / .quick qatorlari o'zi suriladi */
+  html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none}
+  #app,main{max-width:100%;overflow-x:hidden}
+  .quick,.hs{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
+  .quick::-webkit-scrollbar,.hs::-webkit-scrollbar{display:none}
+  .quick button{flex:none;width:76px}
 </style>
 </head>
 <body>
