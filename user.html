@@ -291,6 +291,9 @@
   .quick,.hs{overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
   .quick::-webkit-scrollbar,.hs::-webkit-scrollbar{display:none}
   .quick button{flex:none;width:76px}
+
+  .rate{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;margin-bottom:12px;border-radius:19px;border:0;background:var(--cream);color:var(--bg);font-weight:700;font-size:16px;letter-spacing:1.5px}
+  .rate:active{transform:scale(.98)}
 </style>
 </head>
 <body>
@@ -503,6 +506,7 @@ function renderHome(v){
       '<div><b>' + (h.bots_active || 0) + '</b><span>Faol botlar</span></div>' +
       '<div><b>' + (h.today_updates || 0) + '</b><span>Bugungi yangilanish</span></div></div>' +
 
+    '<button class="rate" data-rate="1">🏆 REYTING</button>' +
     '<div class="quick">' +
       '<button id="qRef"><span class="tile">' + icon("gift") + '</span>Referal</button>' +
       '<button id="qGuide"><span class="tile">' + icon("book") + '</span>Qo\'llanma</button>' +
@@ -1364,6 +1368,7 @@ async function pickBg(id){
 boot();
 </script>
 <script>document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-bugs]");if(!t)return;var w=window.Telegram.WebApp;location.href="https://api.bdbuz.store/bugs?v=3#tgWebAppData="+encodeURIComponent(w.initData)+"&tgWebAppVersion="+encodeURIComponent(w.version)+"&tgWebAppPlatform="+encodeURIComponent(w.platform)+"&tgWebAppThemeParams="+encodeURIComponent(JSON.stringify(w.themeParams||{}));});</script>
+<script>document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-rate]");if(!t)return;var w=window.Telegram.WebApp;location.href="https://api.bdbuz.store/reyting?v=1#tgWebAppData="+encodeURIComponent(w.initData)+"&tgWebAppVersion="+encodeURIComponent(w.version)+"&tgWebAppPlatform="+encodeURIComponent(w.platform)+"&tgWebAppThemeParams="+encodeURIComponent(JSON.stringify(w.themeParams||{}));});</script>
 </body>
 </html>
 
