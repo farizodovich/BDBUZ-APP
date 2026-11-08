@@ -1194,6 +1194,88 @@ async function drawBonus(box, my){
     });
   };
 }
+/* ================= GOAL BONUS (Sozlamalar ichida) ================= */
+const _pageSets1 = pageSets;
+pageSets = async function(v, my){
+  await _pageSets1(v, my);
+  if(my !== token) return;
+  const box = document.createElement("div");
+  v.appendChild(box);
+  drawGoal(box, my);
+};
+async function drawGoal(box, my){
+  let d;
+  try{ d = await getOk("/api/goal/admin"); }
+  catch(e){ box.innerHTML = `<div class="box"><div class="err">Maqsadli bonus yuklanmadi (${esc(e.message)})</div></div>`; return; }
+  if(my !== token) return;
+  const c = d.cfg, again = () => drawGoal(box, my);
+  const sum = Math.round(c.gifts.filter(g => g.visible !== false).reduce((a, g) => a + (+g.chance || 0), 0) * 100) / 100;
+  const tops = d.top.filter(u => u.tickets > 0 || u.progress > 0).slice(0, 10);
+  box.innerHTML = `<div class="box"><h3>🎰 Maqsadli bonus</h3>` +
+    `<div class="${c.enabled ? "ok" : "warn"}" style="font-size:13px;margin-bottom:8px">${c.enabled ? "🟢 Yoqilgan" : "⏸ O'chiq"} · yutuqsiz aylanish: ${c.allow_empty ? "ha" : "yo'q"}</div>` +
+    `<div class="pills"><div class="pill"><b>${money(c.target)}</b><span>maqsad (so'm)</span></div><div class="pill"><b>${c.gifts.length}</b><span>gift</span></div><div class="pill"><b>${sum}%</b><span>ehtimol yig'indisi</span></div></div>` +
+    (c.gifts.length ? c.gifts.map(g => `<div class="row tap" data-gid="${esc(g.id)}"><div class="l"><div class="t">${esc(g.emoji || "🎁")} ${esc(g.name)}${g.visible === false ? " · 🙈" : ""}</div><div class="s">${g.stars || "?"} ⭐</div></div><div class="r"><div class="a">${g.chance}%</div></div></div>`).join("") : `<div class="muted" style="margin:6px 0">Gift qo'shilmagan</div>`) +
+    `<div class="acts"><button class="btn" id="gg-t">✏️ Maqsad narxi</button><button class="btn" id="gg-add">➕ Gift</button></div>` +
+    `<div class="acts"><button class="btn" id="gg-on">${c.enabled ? "⏸ O'chirish" : "▶️ Yoqish"}</button><button class="btn" id="gg-emp">🎲 Yutuqsiz: ${c.allow_empty ? "o'chirish" : "yoqish"}</button></div>` +
+    `<div class="acts"><button class="btn" id="gg-u">🎟 Foydalanuvchi chiptasi</button></div>` +
+    (tops.length ? `<h3 style="margin-top:14px">Chiptalar</h3>` + tops.map(u => `<div class="row tap" data-gu="${u.uid}"><div class="l"><div class="t">ID ${u.uid}</div><div class="s">shkala: ${money(u.progress)} so'm</div></div><div class="r"><div class="a">🎟 ${u.tickets}</div></div></div>`).join("") : "") +
+    (d.log.length ? `<h3 style="margin-top:14px">Oxirgi aylantirishlar</h3>` + d.log.slice(0, 10).map(l => `<div class="row"><div class="l"><div class="t">ID ${l.uid} · ${esc(l.gift)}</div><div class="s">${new Date(l.ts * 1000).toLocaleString()}${l.err ? " · " + esc(l.err) : ""}</div></div><div class="r"><div class="a">${l.status === "sent" ? "✅" : l.status === "failed" ? "❌" : "—"}</div></div></div>`).join("") : "") +
+    `</div>`;
+
+  function giftForm(g){
+    sheet(`<h2>${g.id ? "Giftni tahrirlash" : "Yangi gift"}</h2>` +
+      `<div class="muted" style="margin-top:10px">Nomi</div><input class="inp" id="ggN" value="${esc(g.name || "")}" style="width:100%">` +
+      `<div class="muted" style="margin-top:10px">Emoji</div><input class="inp" id="ggE" value="${esc(g.emoji || "")}" style="width:100%">` +
+      `<div class="muted" style="margin-top:10px">Yutish ehtimoli (%)</div><input class="inp" id="ggC" type="number" inputmode="decimal" value="${g.chance != null ? g.chance : ""}" style="width:100%">` +
+      `<label class="chk" style="margin-top:10px"><input type="checkbox" id="ggV" ${g.visible === false ? "" : "checked"}> Foydalanuvchiga ko'rinsin va yutilsin</label>` +
+      `<button class="btn" id="ggS" style="width:100%;margin-top:14px">Saqlash</button>` +
+      (g.id ? `<button class="btn" id="ggD" style="width:100%;margin-top:8px">🗑 O'chirish</button>` : ""));
+    $("ggS").onclick = e => run(e.target, async () => {
+      const x = await post("/api/goal/gift", { id: g.id, gift_id: g.gift_id, stars: g.stars, name: $("ggN").value.trim(), emoji: $("ggE").value.trim(), chance: +$("ggC").value || 0, visible: $("ggV").checked });
+      if(x){ closeSheet(); toast("✅ Saqlandi"); again(); }
+    });
+    if(g.id) $("ggD").onclick = () => ask("Gift o'chirilsinmi?", async () => {
+      const x = await post("/api/goal/gift/delete", { id: g.id }); if(x){ closeSheet(); again(); }
+    });
+  }
+  async function openUser(uid){
+    let u;
+    try{ u = await getOk("/api/goal/user?uid=" + uid); }catch(e){ toast(e.message, true); return; }
+    sheet(`<h2>🎟 ID ${uid}</h2>` +
+      `<div class="muted" style="margin-top:10px">Chipta soni</div><input class="inp" id="guT" type="number" inputmode="numeric" value="${u.tickets}" style="width:100%">` +
+      `<div class="muted" style="margin-top:10px">Shkala (so'm)</div><input class="inp" id="guP" type="number" inputmode="numeric" value="${u.progress}" style="width:100%">` +
+      `<button class="btn" id="guS" style="width:100%;margin-top:14px">Saqlash</button>`);
+    $("guS").onclick = e => run(e.target, async () => {
+      const x = await post("/api/goal/user", { uid: uid, tickets: +$("guT").value, progress: +$("guP").value });
+      if(x){ closeSheet(); toast("✅ Saqlandi"); again(); }
+    });
+  }
+  box.querySelectorAll("[data-gid]").forEach(r => r.onclick = () => giftForm(c.gifts.find(g => g.id === r.dataset.gid)));
+  box.querySelectorAll("[data-gu]").forEach(r => r.onclick = () => openUser(+r.dataset.gu));
+  $("gg-on").onclick = e => run(e.target, async () => { const x = await post("/api/goal/cfg", { enabled: !c.enabled }); if(x) again(); });
+  $("gg-emp").onclick = e => run(e.target, async () => { const x = await post("/api/goal/cfg", { allow_empty: !c.allow_empty }); if(x) again(); });
+  $("gg-t").onclick = () => {
+    sheet(`<h2>Maqsad narxi</h2><div class="muted" style="margin-top:10px">Har shuncha so'm to'ldirilsa 1 chipta (so'm)</div><input class="inp" id="gtV" type="number" inputmode="numeric" value="${c.target}" style="width:100%"><button class="btn" id="gtS" style="width:100%;margin-top:14px">Saqlash</button>`);
+    $("gtS").onclick = e => run(e.target, async () => { const x = await post("/api/goal/cfg", { target: +$("gtV").value }); if(x){ closeSheet(); toast("✅ Saqlandi"); again(); } });
+  };
+  $("gg-u").onclick = () => {
+    sheet(`<h2>Foydalanuvchi ID</h2><input class="inp" id="gkU" type="number" inputmode="numeric" placeholder="Telegram ID" style="width:100%;margin-top:10px"><button class="btn" id="gkS" style="width:100%;margin-top:14px">Ochish</button>`);
+    $("gkS").onclick = () => { const id = +$("gkU").value; if(id) openUser(id); };
+  };
+  $("gg-add").onclick = async () => {
+    sheet(`<h2>Gift tanlang</h2><div class="muted">Telegramdagi giftlar yuklanmoqda…</div>`);
+    let r;
+    try{ r = await getOk("/api/goal/catalog"); }catch(e){ closeSheet(); toast(e.message, true); return; }
+    const its = r.items.filter(x => !x.sold_out);
+    sheet(`<h2>Gift tanlang</h2><div class="muted" style="margin-bottom:8px">Narxi Stars'da</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">` +
+      its.map((x, i) => `<button class="btn" data-ci="${i}" style="padding:10px 4px">${esc(x.emoji || "🎁")}<br>${x.stars} ⭐</button>`).join("") + `</div>`);
+    document.querySelectorAll("[data-ci]").forEach(b => b.onclick = () => {
+      const x = its[+b.dataset.ci];
+      giftForm({ gift_id: x.gift_id, stars: x.stars, emoji: x.emoji, name: "", chance: 5, visible: true });
+    });
+  };
+}
+
 </script>
 </body>
 </html>

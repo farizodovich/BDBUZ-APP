@@ -507,6 +507,7 @@ function renderHome(v){
       '<div><b>' + (h.today_updates || 0) + '</b><span>Bugungi yangilanish</span></div></div>' +
 
     '<button class="rate" data-rate="1">🏆 REYTING</button>' +
+    '<button class="rate" id="goalBtn" style="margin-top:8px">🎰 SAVDO BARABANI</button>' +
     '<div class="quick">' +
       '<button id="qRef"><span class="tile">' + icon("gift") + '</span>Referal</button>' +
       '<button id="qGuide"><span class="tile">' + icon("book") + '</span>Qo\'llanma</button>' +
@@ -1403,6 +1404,68 @@ boot();
 </script>
 <script>document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-bugs]");if(!t)return;var w=window.Telegram.WebApp;location.href="https://api.bdbuz.store/bugs?v=3#tgWebAppData="+encodeURIComponent(w.initData)+"&tgWebAppVersion="+encodeURIComponent(w.version)+"&tgWebAppPlatform="+encodeURIComponent(w.platform)+"&tgWebAppThemeParams="+encodeURIComponent(JSON.stringify(w.themeParams||{}));});</script>
 <script>document.addEventListener("click",function(e){var t=e.target.closest&&e.target.closest("[data-rate]");if(!t)return;var w=window.Telegram.WebApp;location.href="https://api.bdbuz.store/reyting?v=2#tgWebAppData="+encodeURIComponent(w.initData)+"&tgWebAppVersion="+encodeURIComponent(w.version)+"&tgWebAppPlatform="+encodeURIComponent(w.platform)+"&tgWebAppThemeParams="+encodeURIComponent(JSON.stringify(w.themeParams||{}));});</script>
+<script>
+/* GOAL BONUS (savdo barabani) */
+(function(){
+  const gm = n => String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const CY = 14, TW = 88, GAP = 10;
+  document.addEventListener("click", function(e){
+    const t = e.target.closest && e.target.closest("#goalBtn");
+    if(t) openGoal();
+  });
+  async function openGoal(){
+    let d;
+    try{ d = await getOk("/api/u/goal"); }catch(err){ toast("Yuklanmadi", true); return; }
+    draw(d, "");
+  }
+  function draw(d, msg){
+    const gifts = d.gifts || [];
+    const pct = d.target ? Math.min(100, d.progress / d.target * 100) : 0;
+    const can = d.tickets > 0 && gifts.length > 0;
+    sheet(
+      (msg ? '<div style="padding:12px;border-radius:14px;background:rgba(242,230,179,.18);margin-bottom:12px;font-weight:700;text-align:center">' + msg + '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">🎰 Savdo barabani</h2>' +
+      '<div style="padding:6px 12px;border-radius:999px;background:rgba(242,230,179,.14);font-weight:700">🎟 ' + d.tickets + '</div></div>' +
+      '<div style="opacity:.75;font-size:13px;margin:6px 0 12px">Maqsad to\'lganda aylantiring va gift yuting</div>' +
+      (gifts.length ?
+      '<div id="gBox" style="position:relative;border-radius:16px;background:rgba(0,0,0,.28);padding:14px 0 10px;overflow:hidden">' +
+        '<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:12px solid #F2E6B3;z-index:2"></div>' +
+        '<div id="gReel" style="display:flex;gap:' + GAP + 'px;will-change:transform"></div></div>' : '') +
+      '<div style="height:10px;border-radius:99px;background:rgba(242,230,179,.14);margin-top:14px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:#F2E6B3;border-radius:99px"></div></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;opacity:.8;margin-top:6px"><span>' + gm(d.progress) + ' so\'m</span><span>' + gm(d.target) + ' so\'m</span></div>' +
+      '<button class="btn solid" id="gSpin" style="width:100%;margin-top:12px"' + (can ? '' : ' disabled') + '>' +
+        (can ? '🎰 Aylantirish' : (gifts.length ? 'Maqsad to\'lishini kuting' : 'Hozircha sovg\'a yo\'q')) + '</button>' +
+      '<div style="opacity:.75;font-size:12px;margin-top:8px;text-align:center">Faqat hisobni karta orqali to\'ldirish shkalani to\'ldiradi</div>' +
+      (gifts.length ? '<h3 style="margin:16px 0 8px">Yutish mumkin bo\'lgan sovg\'alar</h3>' +
+        gifts.map(g => '<div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(242,230,179,.12)"><span>' + esc(g.emoji || "🎁") + ' ' + esc(g.name) + '</span><b>' + Number(g.chance).toFixed(2) + '%</b></div>').join("") : '')
+    );
+    const reel = $("gReel");
+    if(!reel) return;
+    reel.innerHTML = Array.from({length: CY}, () => gifts.map(g =>
+      '<div style="flex:0 0 ' + TW + 'px;height:92px;border-radius:14px;background:rgba(242,230,179,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><div style="font-size:34px">' + esc(g.emoji || "🎁") + '</div><div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.85;max-width:' + (TW - 8) + 'px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + esc(g.name) + '</div></div>').join("")).join("");
+    const pos = k => $("gBox").clientWidth / 2 - (k * (TW + GAP) + TW / 2);
+    reel.style.transform = "translateX(" + pos(2 * gifts.length) + "px)";
+    $("gSpin").onclick = async () => {
+      const b = $("gSpin"); b.disabled = true; b.textContent = "Aylanmoqda…";
+      const r = await post("/api/u/goal/spin", {});
+      if(!r){ draw(d, ""); return; }
+      d.tickets = r.tickets;
+      let m;
+      if(r.gift){
+        const idx = Math.max(0, gifts.findIndex(g => g.id === r.gift.id));
+        reel.style.transition = "transform 4.2s cubic-bezier(.12,.7,.12,1)";
+        reel.style.transform = "translateX(" + pos((CY - 3) * gifts.length + idx) + "px)";
+        await new Promise(res => setTimeout(res, 4500));
+        m = '🎉 Yutdingiz: ' + esc(r.gift.emoji || "🎁") + ' ' + esc(r.gift.name) + '!<br><span style="font-weight:400;font-size:13px">Gift Telegram akkauntingizga yuborildi</span>';
+      } else {
+        m = 'Bu safar omad kelmadi 😔';
+      }
+      draw(d, m);
+    };
+  }
+})();
+</script>
+
 </body>
 </html>
 
