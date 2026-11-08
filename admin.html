@@ -1140,6 +1140,60 @@ async function pageAdmins(v, my){
 }
 
 boot();
+
+/* ================= BONUS KANAL (Sozlamalar ichida) ================= */
+const BN_PER = {day: "Kunlik", week: "Haftalik", month: "Oylik"};
+const BN_MAX = {day: 24, week: 7, month: 10};
+const _pageSets0 = pageSets;
+pageSets = async function(v, my){
+  await _pageSets0(v, my);
+  if(my !== token) return;
+  const box = document.createElement("div");
+  v.appendChild(box);
+  drawBonus(box, my);
+};
+async function drawBonus(box, my){
+  let d;
+  try{ d = await getOk("/api/bonus"); }
+  catch(e){ box.innerHTML = `<div class="box"><div class="err">Bonus yuklanmadi (${esc(e.message)})</div></div>`; return; }
+  if(my !== token) return;
+  const r = d.round, again = () => drawBonus(box, my);
+  box.innerHTML = `<div class="box"><h3>🎁 Bonus kanal</h3>` +
+    `<div class="${d.enabled ? "ok" : "warn"}" style="font-size:13px;margin-bottom:8px">${d.enabled ? "🟢 Yoqilgan" : "⏸ O'chiq"} · keyingi: ${esc(d.next)}</div>` +
+    (r ? `<div class="muted" style="margin-bottom:8px">Oxirgi: ${r.got}/${r.people} kishi · ${money(r.sum)}/${money(r.total)} so'm${r.done ? " · tugagan" : ""}</div>` : "") +
+    (d.channels.length ? d.channels.map((c, i) => `<div class="row"><div class="l"><div class="t">📢 ${esc(c.title || c.chat)}</div></div><div class="r"><button class="btn sm" data-bdel="${i}">🗑</button></div></div>`).join("") : `<div class="muted" style="margin-bottom:6px">Kanal qo'shilmagan</div>`) +
+    `<div class="pills"><div class="pill"><b>${money(d.total)}</b><span>jami so'm</span></div><div class="pill"><b>${d.people}</b><span>kishi</span></div><div class="pill"><b>${d.times}</b><span>${BN_PER[d.period]}</span></div></div>` +
+    `<div class="acts"><button class="btn" id="bn-set">✏️ Sozlama</button><button class="btn" id="bn-add">➕ Kanal</button></div>` +
+    `<div class="acts"><button class="btn" id="bn-tg">${d.enabled ? "⏸ O'chirish" : "▶️ Yoqish"}</button><button class="btn" id="bn-now">🚀 Hozir yuborish</button></div></div>`;
+  box.querySelectorAll("[data-bdel]").forEach(b => b.onclick = () => ask("Kanal o'chirilsinmi?", async () => {
+    const x = await post("/api/bonus/channel/remove", { i: +b.dataset.bdel }); if(x) again();
+  }));
+  $("bn-tg").onclick = e => run(e.target, async () => {
+    const x = await post("/api/bonus/set", { enabled: !d.enabled }); if(x){ toast(x.enabled ? "✅ Yoqildi" : "⏸ O'chirildi"); again(); }
+  });
+  $("bn-now").onclick = () => ask("Bonus hozir kanallarga yuborilsinmi?", async () => {
+    const x = await post("/api/bonus/send", {}); if(x){ toast("✅ Yuborildi"); again(); }
+  });
+  $("bn-add").onclick = () => {
+    sheet(`<h2>Kanal qo'shish</h2><div class="muted">@username yoki -100... ID. Bot kanalda admin bo'lsin.</div>` +
+      `<input class="inp" id="bnC" placeholder="@kanal" autocomplete="off" style="margin:12px 0;width:100%"><button class="btn" id="bnCs" style="width:100%">Qo'shish</button>`);
+    $("bnCs").onclick = e => run(e.target, async () => {
+      const x = await post("/api/bonus/channel/add", { q: $("bnC").value.trim() }); if(x){ closeSheet(); toast("✅ Qo'shildi"); again(); }
+    });
+  };
+  $("bn-set").onclick = () => {
+    sheet(`<h2>Bonus sozlamasi</h2>` +
+      `<div class="muted" style="margin-top:10px">Jami summa (so'm)</div><input class="inp" id="bnT" type="number" inputmode="numeric" value="${d.total}" style="width:100%">` +
+      `<div class="muted" style="margin-top:10px">Ishtirokchilar soni</div><input class="inp" id="bnN" type="number" inputmode="numeric" value="${d.people}" style="width:100%">` +
+      `<div class="muted" style="margin-top:10px">Davr</div><select class="inp" id="bnP" style="width:100%">${Object.keys(BN_PER).map(k => `<option value="${k}"${k === d.period ? " selected" : ""}>${BN_PER[k]} (max ${BN_MAX[k]})</option>`).join("")}</select>` +
+      `<div class="muted" style="margin-top:10px">Necha marta</div><input class="inp" id="bnX" type="number" inputmode="numeric" value="${d.times}" style="width:100%">` +
+      `<button class="btn" id="bnS" style="width:100%;margin-top:14px">Saqlash</button>`);
+    $("bnS").onclick = e => run(e.target, async () => {
+      const x = await post("/api/bonus/set", { total: +$("bnT").value, people: +$("bnN").value, period: $("bnP").value, times: +$("bnX").value });
+      if(x){ closeSheet(); toast("✅ Saqlandi"); again(); }
+    });
+  };
+}
 </script>
 </body>
 </html>

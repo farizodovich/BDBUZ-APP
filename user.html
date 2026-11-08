@@ -775,6 +775,7 @@ function drawTpl(keep){
     '<div class="muted" style="margin-bottom:12px">' + esc(t.about) + '</div>' +
     '<div class="wl" style="margin-top:0"><h4>' + esc(t.plan_emoji) + ' ' + esc(t.plan_title) + ' — ' + money(t.price) + ' so\'m/oy</h4>' +
       '<ul class="ul" style="margin-top:0">' + t.lines.map(l => '<li>' + esc(l) + '</li>').join("") + '</ul></div>' +
+    '<button class="btn out sm" id="cmOpen" style="width:100%;margin:10px 0">💬 Commentlar</button>' +
     '<div class="hint">Bot har doim Starter tarifidan boshlanadi. Keyinroq Botlarim bo\'limida Pro yoki VIP\'ga o\'tishingiz mumkin.</div>' +
     '<div style="display:flex;gap:8px;margin-top:6px"><input class="inp" id="prIn" placeholder="Promo-kod (ixtiyoriy)" autocomplete="off" autocapitalize="characters" spellcheck="false" style="margin:10px 0;flex:1;min-width:0" value="' + esc(keep || (PR ? PR.code : "")) + '">' +
       '<button class="btn out sm" id="prGo" style="margin:10px 0;padding:0 16px">Qo\'llash</button></div>' +
@@ -784,12 +785,45 @@ function drawTpl(keep){
     (lack ? '<div class="note" style="margin-top:12px">' + icon("alert") + '<span>Yetmaydi — ' + money(price - bal) + ' so\'m to\'ldiring.</span></div>' + needTopup()
           : '<button class="btn main sm" id="cGo" style="width:100%;margin-top:14px">Davom etish — ' + money(price) + ' so\'m</button>'));
   $("shX").onclick = closeSheet; bindTopup();
+  $("cmOpen").onclick = () => openComments(t);
   const g = $("cGo"); if(g) g.onclick = drawTokenStep;
   $("prGo").onclick = async () => {
     const code = $("prIn").value.trim();
     if(!code){ PR = null; drawTpl(); return; }
     const r = await post("/api/u/create/promo", { template: t.key, code });
     if(r){ PR = r; drawTpl(); toast("Promo-kod qabul qilindi"); }
+  };
+}
+
+async function openComments(t){
+  sheet(shHead("Commentlar") + '<div class="center">Yuklanmoqda…</div>');
+  $("shX").onclick = () => drawTpl();
+  try{
+    const d = await getOk("/api/u/comments?template=" + encodeURIComponent(t.key));
+    sheet(shHead("Commentlar") +
+      '<div class="muted" style="margin-bottom:10px">' + esc(t.title) + (d.count ? " · ⭐ " + d.avg + " (" + d.count + " ta baho)" : "") + '</div>' +
+      (d.items.length ? d.items.map(i => '<div class="box" style="margin-bottom:8px"><div>' + "⭐".repeat(i.stars) + " <b>" + esc(i.name) + '</b></div>' + (i.text ? '<div class="muted" style="margin-top:4px">' + esc(i.text) + '</div>' : "") + '</div>').join("") : '<div class="center" style="padding:16px 0">Hali comment yo\'q.</div>') +
+      (d.can.length ? '<button class="btn main sm" id="cmAdd" style="width:100%;margin-top:10px">✍️ Comment qoldirish</button>' : "") +
+      '<button class="btn out sm" id="cmBack" style="width:100%;margin-top:8px">◀️ Orqaga</button>');
+    $("shX").onclick = () => drawTpl();
+    $("cmBack").onclick = () => drawTpl();
+    if($("cmAdd")) $("cmAdd").onclick = () => commentForm(t, d.can[0]);
+  }catch(e){ toast("Yuklab bo'lmadi", true); drawTpl(); }
+}
+function commentForm(t, b){
+  let st = 5;
+  sheet(shHead("Comment") + '<div class="muted">' + esc(b.name) + '</div><div id="cmSt" style="display:flex;gap:6px;margin:12px 0"></div>' +
+    '<textarea class="inp" id="cmTx" maxlength="300" rows="4" placeholder="Fikringiz (ixtiyoriy)" style="width:100%"></textarea>' +
+    '<button class="btn main sm" id="cmGo" style="width:100%;margin-top:12px">Yuborish</button>');
+  const paint = () => {
+    $("cmSt").innerHTML = [1, 2, 3, 4, 5].map(n => '<button class="btn ' + (n <= st ? "main" : "out") + ' sm" data-n="' + n + '" style="flex:1;padding:0">' + n + "⭐</button>").join("");
+    $("cmSt").querySelectorAll("button").forEach(x => x.onclick = () => { st = +x.dataset.n; paint(); });
+  };
+  paint();
+  $("shX").onclick = () => openComments(t);
+  $("cmGo").onclick = async () => {
+    const r = await post("/api/u/comments/add", { bot: b.id, stars: st, text: $("cmTx").value });
+    if(r){ toast("✅ Rahmat!"); openComments(t); }
   };
 }
 
